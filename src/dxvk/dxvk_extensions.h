@@ -302,6 +302,9 @@ namespace dxvk {
     DxvkExt khrSwapchain                      = { VK_KHR_SWAPCHAIN_EXTENSION_NAME,                          DxvkExtMode::Required };
     DxvkExt nvxBinaryImport                   = { VK_NVX_BINARY_IMPORT_EXTENSION_NAME,                      DxvkExtMode::Disabled };
     DxvkExt nvxImageViewHandle                = { VK_NVX_IMAGE_VIEW_HANDLE_EXTENSION_NAME,                  DxvkExtMode::Disabled };
+    #if ORBIT_GPU_INSTRUMENTATION
+    DxvkExt extDebugUtils                    = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME,                          DxvkExtMode::Optional };
+    #endif
   };
   
   /**

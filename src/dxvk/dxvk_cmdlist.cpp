@@ -1,6 +1,10 @@
 #include "dxvk_cmdlist.h"
 #include "dxvk_device.h"
 
+#ifdef ORBIT_INSTRUMENTATION_BUILD
+ORBIT_API_INSTANTIATE;
+#endif
+
 namespace dxvk {
 
   DxvkCommandSubmission::DxvkCommandSubmission() {
@@ -57,6 +61,9 @@ namespace dxvk {
   VkResult DxvkCommandSubmission::submit(
           DxvkDevice*           device,
           VkQueue               queue) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_VK("DXVK__vkQueueSubmit");
+    #endif
     auto vk = device->vkd();
 
     VkSubmitInfo2 submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
@@ -106,6 +113,9 @@ namespace dxvk {
           DxvkDevice*           device,
           uint32_t              queueFamily)
   : m_device(device) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_VK("DXVK__vkCreateCommandPool");
+    #endif
     auto vk = m_device->vkd();
 
     VkCommandPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
@@ -117,6 +127,9 @@ namespace dxvk {
 
 
   DxvkCommandPool::~DxvkCommandPool() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_VK("DXVK__vkDestroyCommandPool");
+    #endif
     auto vk = m_device->vkd();
 
     vk->vkDestroyCommandPool(vk->device(), m_commandPool, nullptr);
@@ -135,6 +148,9 @@ namespace dxvk {
 
       VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_VK("DXVK__vkAllocateCommandBuffers");
+      #endif
       if (vk->vkAllocateCommandBuffers(vk->device(), &allocInfo, &commandBuffer))
         throw DxvkError("DxvkCommandPool: Failed to allocate command buffer");
 
@@ -148,6 +164,9 @@ namespace dxvk {
     VkCommandBufferBeginInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
     info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_VK("DXVK__vkBeginCommandBuffer");
+    #endif
     if (vk->vkBeginCommandBuffer(commandBuffer, &info))
       throw DxvkError("DxvkCommandPool: Failed to begin command buffer");
 
@@ -159,6 +178,9 @@ namespace dxvk {
     auto vk = m_device->vkd();
 
     if (m_next) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_VK("DXVK__vkResetCommandPool");
+      #endif
       if (vk->vkResetCommandPool(vk->device(), m_commandPool, 0))
         throw DxvkError("DxvkCommandPool: Failed to reset command pool");
 
@@ -421,6 +443,9 @@ namespace dxvk {
   void DxvkCommandList::endCommandBuffer(VkCommandBuffer cmdBuffer) {
     auto vk = m_device->vkd();
 
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_VK("DXVK__vkEndCommandBuffer");
+    #endif
     if (vk->vkEndCommandBuffer(cmdBuffer))
       throw DxvkError("DxvkCommandList: Failed to end command buffer");
   }

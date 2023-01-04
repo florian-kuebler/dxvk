@@ -8,7 +8,9 @@
 #include "d3d11_cuda.h"
 
 #include "../util/log/log.h"
-
+#ifdef ORBIT_INSTRUMENTATION_BUILD
+#include "OrbitApiInterface/OrbitDXVK.h"
+#endif
 namespace dxvk {
   
   template<typename ContextType>
@@ -21,12 +23,18 @@ namespace dxvk {
   
   template<typename ContextType>
   ULONG STDMETHODCALLTYPE D3D11DeviceContextExt<ContextType>::AddRef() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     return m_ctx->AddRef();
   }
   
-  
+
   template<typename ContextType>
   ULONG STDMETHODCALLTYPE D3D11DeviceContextExt<ContextType>::Release() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     return m_ctx->Release();
   }
   
@@ -35,6 +43,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D11DeviceContextExt<ContextType>::QueryInterface(
           REFIID                  riid,
           void**                  ppvObject) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return m_ctx->QueryInterface(riid, ppvObject);
   }
   
@@ -45,6 +57,11 @@ namespace dxvk {
           ID3D11Buffer*           pBufferForArgs,
           UINT                    ByteOffsetForArgs,
           UINT                    ByteStrideForArgs) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D10DeviceLock lock = m_ctx->LockContext();
     m_ctx->SetDrawBuffers(pBufferForArgs, nullptr);
     
@@ -52,7 +69,14 @@ namespace dxvk {
       cCount  = DrawCount,
       cOffset = ByteOffsetForArgs,
       cStride = ByteStrideForArgs
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_MultiDrawIndirect", cCurrentId);
+      #endif
+
       ctx->drawIndirect(cOffset, cCount, cStride);
     });
   }
@@ -64,6 +88,11 @@ namespace dxvk {
           ID3D11Buffer*           pBufferForArgs,
           UINT                    ByteOffsetForArgs,
           UINT                    ByteStrideForArgs) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D10DeviceLock lock = m_ctx->LockContext();
     m_ctx->SetDrawBuffers(pBufferForArgs, nullptr);
     
@@ -71,7 +100,14 @@ namespace dxvk {
       cCount  = DrawCount,
       cOffset = ByteOffsetForArgs,
       cStride = ByteStrideForArgs
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_MultiDrawIndexedIndirect", cCurrentId);
+      #endif
+
       ctx->drawIndexedIndirect(cOffset, cCount, cStride);
     });
   }
@@ -85,6 +121,11 @@ namespace dxvk {
           ID3D11Buffer*           pBufferForArgs,
           UINT                    ByteOffsetForArgs,
           UINT                    ByteStrideForArgs) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D10DeviceLock lock = m_ctx->LockContext();
     m_ctx->SetDrawBuffers(pBufferForArgs, pBufferForCount);
 
@@ -93,7 +134,13 @@ namespace dxvk {
       cArgOffset = ByteOffsetForArgs,
       cCntOffset = ByteOffsetForCount,
       cStride    = ByteStrideForArgs
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_MultiDrawIndirectCount", cCurrentId);
+      #endif
       ctx->drawIndirectCount(cArgOffset, cCntOffset, cMaxCount, cStride);
     });
   }
@@ -107,6 +154,11 @@ namespace dxvk {
           ID3D11Buffer*           pBufferForArgs,
           UINT                    ByteOffsetForArgs,
           UINT                    ByteStrideForArgs) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D10DeviceLock lock = m_ctx->LockContext();
     m_ctx->SetDrawBuffers(pBufferForArgs, pBufferForCount);
 
@@ -115,7 +167,14 @@ namespace dxvk {
       cArgOffset = ByteOffsetForArgs,
       cCntOffset = ByteOffsetForCount,
       cStride    = ByteStrideForArgs
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_MultiDrawIndexedIndirectCount", cCurrentId);
+      #endif
+
       ctx->drawIndexedIndirectCount(cArgOffset, cCntOffset, cMaxCount, cStride);
     });
   }
@@ -126,6 +185,11 @@ namespace dxvk {
           BOOL                    Enable,
           FLOAT                   MinDepthBounds,
           FLOAT                   MaxDepthBounds) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D10DeviceLock lock = m_ctx->LockContext();
 
     DxvkDepthBounds db;
@@ -133,7 +197,17 @@ namespace dxvk {
     db.minDepthBounds     = MinDepthBounds;
     db.maxDepthBounds     = MaxDepthBounds;
     
-    m_ctx->EmitCs([cDepthBounds = db] (DxvkContext* ctx) {
+    
+    m_ctx->EmitCs([
+        cDepthBounds = db
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
+    ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_SetDepthBoundsTest", cCurrentId);
+      #endif
+
       ctx->setDepthBounds(cDepthBounds);
     });
   }
@@ -142,6 +216,10 @@ namespace dxvk {
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11DeviceContextExt<ContextType>::SetBarrierControl(
           UINT                    ControlFlags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D10DeviceLock lock = m_ctx->LockContext();
     DxvkBarrierControlFlags flags;
     
@@ -151,7 +229,17 @@ namespace dxvk {
     if (ControlFlags & D3D11_VK_BARRIER_CONTROL_IGNORE_GRAPHICS_UAV)
       flags.set(DxvkBarrierControl::IgnoreGraphicsBarriers);
 
-    m_ctx->EmitCs([cFlags = flags] (DxvkContext* ctx) {
+    
+    m_ctx->EmitCs([
+      cFlags = flags
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
+    ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_SetBarrierControl", cCurrentId);
+      #endif
+
       ctx->setBarrierControl(cFlags);
     });
   }

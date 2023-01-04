@@ -19,6 +19,11 @@
 #include "dxvk_staging.h"
 #include "dxvk_stats.h"
 
+#ifdef ORBIT_INSTRUMENTATION_BUILD
+#include "OrbitApiInterface/Orbit.h"
+#include "OrbitApiInterface/OrbitDXVK.h"
+#endif
+
 namespace dxvk {
   
   /**
@@ -386,6 +391,9 @@ namespace dxvk {
     void updateDescriptorSets(
             uint32_t                      descriptorWriteCount,
       const VkWriteDescriptorSet*         pDescriptorWrites) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_VK("DXVK__vkUpdateDescriptorSets");
+      #endif
       m_vkd->vkUpdateDescriptorSets(m_vkd->device(),
         descriptorWriteCount, pDescriptorWrites,
         0, nullptr);
@@ -396,6 +404,9 @@ namespace dxvk {
             VkDescriptorSet               descriptorSet,
             VkDescriptorUpdateTemplate    descriptorTemplate,
       const void*                         data) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_VK("DXVK__vkUpdateDescriptorSetWithTemplate");
+      #endif
       m_vkd->vkUpdateDescriptorSetWithTemplate(m_vkd->device(),
         descriptorSet, descriptorTemplate, data);
     }
@@ -405,10 +416,20 @@ namespace dxvk {
             VkQueryPool             queryPool,
             uint32_t                query,
             VkQueryControlFlags     flags) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdBeginQuery", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdBeginQuery",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(DxvkCmdBuffer::ExecBuffer);
 
       m_vkd->vkCmdBeginQuery(m_cmd.execBuffer,
         queryPool, query, flags);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -417,18 +438,38 @@ namespace dxvk {
             uint32_t                query,
             VkQueryControlFlags     flags,
             uint32_t                index) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdBeginQueryIndexedEXT", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdBeginQueryIndexedEXT",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(DxvkCmdBuffer::ExecBuffer);
 
       m_vkd->vkCmdBeginQueryIndexedEXT(
         m_cmd.execBuffer, queryPool, query, flags, index);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
     void cmdBeginRendering(
       const VkRenderingInfo*        pRenderingInfo) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdBeginQueryIndexedEXT", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdBeginQueryIndexedEXT",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(DxvkCmdBuffer::ExecBuffer);
 
       m_vkd->vkCmdBeginRendering(m_cmd.execBuffer, pRenderingInfo);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
     
@@ -437,8 +478,18 @@ namespace dxvk {
             uint32_t                  bufferCount,
       const VkBuffer*                 counterBuffers,
       const VkDeviceSize*             counterOffsets) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdBeginTransformFeedbackEXT", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdBeginTransformFeedbackEXT",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdBeginTransformFeedbackEXT(m_cmd.execBuffer,
         firstBuffer, bufferCount, counterBuffers, counterOffsets);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -448,9 +499,19 @@ namespace dxvk {
             VkDescriptorSet           descriptorSet,
             uint32_t                  dynamicOffsetCount,
       const uint32_t*                 pDynamicOffsets) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdBindDescriptorSets", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdBindDescriptorSets",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdBindDescriptorSets(m_cmd.execBuffer,
         pipeline, pipelineLayout, 0, 1,
         &descriptorSet, dynamicOffsetCount, pDynamicOffsets);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -462,9 +523,19 @@ namespace dxvk {
       const VkDescriptorSet*          descriptorSets,
             uint32_t                  dynamicOffsetCount,
       const uint32_t*                 pDynamicOffsets) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdBindDescriptorSets", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdBindDescriptorSets",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdBindDescriptorSets(m_cmd.execBuffer,
         pipeline, pipelineLayout, firstSet, descriptorSetCount,
         descriptorSets, dynamicOffsetCount, pDynamicOffsets);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
@@ -472,16 +543,36 @@ namespace dxvk {
             VkBuffer                buffer,
             VkDeviceSize            offset,
             VkIndexType             indexType) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdBindIndexBuffer", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdBindIndexBuffer",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdBindIndexBuffer(m_cmd.execBuffer,
         buffer, offset, indexType);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
     void cmdBindPipeline(
             VkPipelineBindPoint     pipelineBindPoint,
             VkPipeline              pipeline) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdBindPipeline", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdBindPipeline",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdBindPipeline(m_cmd.execBuffer,
         pipelineBindPoint, pipeline);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
@@ -491,8 +582,18 @@ namespace dxvk {
       const VkBuffer*               pBuffers,
       const VkDeviceSize*           pOffsets,
       const VkDeviceSize*           pSizes) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdBindTransformFeedbackBuffersEXT", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdBindTransformFeedbackBuffersEXT",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdBindTransformFeedbackBuffersEXT(m_cmd.execBuffer,
         firstBinding, bindingCount, pBuffers, pOffsets, pSizes);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -503,23 +604,53 @@ namespace dxvk {
       const VkDeviceSize*           pOffsets,
       const VkDeviceSize*           pSizes,
       const VkDeviceSize*           pStrides) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdBindVertexBuffers2", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdBindVertexBuffers2",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdBindVertexBuffers2(m_cmd.execBuffer,
         firstBinding, bindingCount, pBuffers, pOffsets,
         pSizes, pStrides);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     void cmdLaunchCuKernel(VkCuLaunchInfoNVX launchInfo) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdCuLaunchKernelNVX", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdCuLaunchKernelNVX",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(DxvkCmdBuffer::ExecBuffer);
 
       m_vkd->vkCmdCuLaunchKernelNVX(m_cmd.execBuffer, &launchInfo);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
 
     void cmdBlitImage(
         const VkBlitImageInfo2*     pBlitInfo) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdBlitImage2", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdBlitImage2",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(DxvkCmdBuffer::ExecBuffer);
 
       m_vkd->vkCmdBlitImage2(m_cmd.execBuffer, pBlitInfo);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -528,9 +659,19 @@ namespace dxvk {
       const VkClearAttachment*      pAttachments,
             uint32_t                rectCount,
       const VkClearRect*            pRects) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdClearAttachments", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdClearAttachments",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdClearAttachments(m_cmd.execBuffer,
         attachmentCount, pAttachments,
         rectCount, pRects);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -540,11 +681,21 @@ namespace dxvk {
       const VkClearColorValue*      pColor,
             uint32_t                rangeCount,
       const VkImageSubresourceRange* pRanges) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdClearColorImage", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdClearColorImage",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(DxvkCmdBuffer::ExecBuffer);
 
       m_vkd->vkCmdClearColorImage(m_cmd.execBuffer,
         image, imageLayout, pColor,
         rangeCount, pRanges);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -554,47 +705,97 @@ namespace dxvk {
       const VkClearDepthStencilValue* pDepthStencil,
             uint32_t                rangeCount,
       const VkImageSubresourceRange* pRanges) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdClearDepthStencilImage", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdClearDepthStencilImage",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(DxvkCmdBuffer::ExecBuffer);
 
       m_vkd->vkCmdClearDepthStencilImage(m_cmd.execBuffer,
         image, imageLayout, pDepthStencil,
         rangeCount, pRanges);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
     void cmdCopyBuffer(
             DxvkCmdBuffer           cmdBuffer,
       const VkCopyBufferInfo2*      copyInfo) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "XXXXX", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("XXXXX",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(cmdBuffer);
 
       m_vkd->vkCmdCopyBuffer2(getCmdBuffer(cmdBuffer), copyInfo);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
     void cmdCopyBufferToImage(
             DxvkCmdBuffer           cmdBuffer,
       const VkCopyBufferToImageInfo2* copyInfo) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdCopyBufferToImage2", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdCopyBufferToImage2",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(cmdBuffer);
 
       m_vkd->vkCmdCopyBufferToImage2(getCmdBuffer(cmdBuffer), copyInfo);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
     void cmdCopyImage(
             DxvkCmdBuffer           cmdBuffer,
       const VkCopyImageInfo2*       copyInfo) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdCopyImage2", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdCopyImage2",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(cmdBuffer);
 
       m_vkd->vkCmdCopyImage2(getCmdBuffer(cmdBuffer), copyInfo);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
     void cmdCopyImageToBuffer(
             DxvkCmdBuffer           cmdBuffer,
       const VkCopyImageToBufferInfo2* copyInfo) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdCopyImageToBuffer2", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdCopyImageToBuffer2",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(cmdBuffer);
 
       m_vkd->vkCmdCopyImageToBuffer2(getCmdBuffer(cmdBuffer), copyInfo);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
@@ -606,11 +807,21 @@ namespace dxvk {
             VkDeviceSize            dstOffset,
             VkDeviceSize            stride,
             VkQueryResultFlags      flags) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdCopyQueryPoolResults", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdCopyQueryPoolResults",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(DxvkCmdBuffer::ExecBuffer);
 
       m_vkd->vkCmdCopyQueryPoolResults(m_cmd.execBuffer,
         queryPool, firstQuery, queryCount,
         dstBuffer, dstOffset, stride, flags);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -618,19 +829,39 @@ namespace dxvk {
             uint32_t                x,
             uint32_t                y,
             uint32_t                z) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdDispatch", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdDispatch",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(DxvkCmdBuffer::ExecBuffer);
 
       m_vkd->vkCmdDispatch(m_cmd.execBuffer, x, y, z);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
     void cmdDispatchIndirect(
             VkBuffer                buffer,
             VkDeviceSize            offset) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdDispatchIndirect", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdDispatchIndirect",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(DxvkCmdBuffer::ExecBuffer);
 
       m_vkd->vkCmdDispatchIndirect(
         m_cmd.execBuffer, buffer, offset);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -639,9 +870,19 @@ namespace dxvk {
             uint32_t                instanceCount,
             uint32_t                firstVertex,
             uint32_t                firstInstance) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdDraw", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdDraw",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdDraw(m_cmd.execBuffer,
         vertexCount, instanceCount,
         firstVertex, firstInstance);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -650,8 +891,18 @@ namespace dxvk {
             VkDeviceSize            offset,
             uint32_t                drawCount,
             uint32_t                stride) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdDrawIndirect", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdDrawIndirect",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdDrawIndirect(m_cmd.execBuffer,
         buffer, offset, drawCount, stride);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -662,8 +913,18 @@ namespace dxvk {
             VkDeviceSize            countOffset,
             uint32_t                maxDrawCount,
             uint32_t                stride) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdDrawIndirectCount", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdDrawIndirectCount",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdDrawIndirectCount(m_cmd.execBuffer,
         buffer, offset, countBuffer, countOffset, maxDrawCount, stride);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -673,10 +934,20 @@ namespace dxvk {
             uint32_t                firstIndex,
             uint32_t                vertexOffset,
             uint32_t                firstInstance) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdDrawIndexed", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdDrawIndexed",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdDrawIndexed(m_cmd.execBuffer,
         indexCount, instanceCount,
         firstIndex, vertexOffset,
         firstInstance);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -685,8 +956,18 @@ namespace dxvk {
             VkDeviceSize            offset,
             uint32_t                drawCount,
             uint32_t                stride) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdDrawIndexedIndirect", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdDrawIndexedIndirect",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdDrawIndexedIndirect(m_cmd.execBuffer,
         buffer, offset, drawCount, stride);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
@@ -697,8 +978,18 @@ namespace dxvk {
             VkDeviceSize            countOffset,
             uint32_t                maxDrawCount,
             uint32_t                stride) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdDrawIndexedIndirectCount", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdDrawIndexedIndirectCount",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdDrawIndexedIndirectCount(m_cmd.execBuffer,
         buffer, offset, countBuffer, countOffset, maxDrawCount, stride);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -709,16 +1000,36 @@ namespace dxvk {
             VkDeviceSize            counterBufferOffset,
             uint32_t                counterOffset,
             uint32_t                vertexStride) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdDrawIndirectByteCountEXT", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdDrawIndirectByteCountEXT",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdDrawIndirectByteCountEXT(m_cmd.execBuffer,
         instanceCount, firstInstance, counterBuffer,
         counterBufferOffset, counterOffset, vertexStride);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
     void cmdEndQuery(
             VkQueryPool             queryPool,
             uint32_t                query) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdEndQuery", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdEndQuery",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdEndQuery(m_cmd.execBuffer, queryPool, query);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
@@ -726,13 +1037,33 @@ namespace dxvk {
             VkQueryPool             queryPool,
             uint32_t                query,
             uint32_t                index) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdEndQueryIndexedEXT", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdEndQueryIndexedEXT",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdEndQueryIndexedEXT(
         m_cmd.execBuffer, queryPool, query, index);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
     void cmdEndRendering() {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdEndRendering", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdEndRendering",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdEndRendering(m_cmd.execBuffer);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
     
@@ -741,8 +1072,18 @@ namespace dxvk {
             uint32_t                  bufferCount,
       const VkBuffer*                 counterBuffers,
       const VkDeviceSize*             counterOffsets) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdEndTransformFeedbackEXT", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdEndTransformFeedbackEXT",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdEndTransformFeedbackEXT(m_cmd.execBuffer,
         firstBuffer, bufferCount, counterBuffers, counterOffsets);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
@@ -752,19 +1093,39 @@ namespace dxvk {
             VkDeviceSize            dstOffset,
             VkDeviceSize            size,
             uint32_t                data) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdFillBuffer", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdFillBuffer",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(cmdBuffer);
 
       m_vkd->vkCmdFillBuffer(getCmdBuffer(cmdBuffer),
         dstBuffer, dstOffset, size, data);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
     void cmdPipelineBarrier(
             DxvkCmdBuffer           cmdBuffer,
       const VkDependencyInfo*       dependencyInfo) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdPipelineBarrier2", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdPipelineBarrier2",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(cmdBuffer);
 
       m_vkd->vkCmdPipelineBarrier2(getCmdBuffer(cmdBuffer), dependencyInfo);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -774,16 +1135,36 @@ namespace dxvk {
             uint32_t                offset,
             uint32_t                size,
       const void*                   pValues) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdPushConstants", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdPushConstants",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdPushConstants(m_cmd.execBuffer,
         layout, stageFlags, offset, size, pValues);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
     void cmdResolveImage(
       const VkResolveImageInfo2*    resolveInfo) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdResolveImage2", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdResolveImage2",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(DxvkCmdBuffer::ExecBuffer);
 
       m_vkd->vkCmdResolveImage2(m_cmd.execBuffer, resolveInfo);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
@@ -793,27 +1174,67 @@ namespace dxvk {
             VkDeviceSize            dstOffset,
             VkDeviceSize            dataSize,
       const void*                   pData) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdUpdateBuffer", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdUpdateBuffer",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(cmdBuffer);
 
       m_vkd->vkCmdUpdateBuffer(getCmdBuffer(cmdBuffer),
         dstBuffer, dstOffset, dataSize, pData);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
     void cmdSetBlendConstants(const float blendConstants[4]) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdSetBlendConstants", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdSetBlendConstants",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdSetBlendConstants(m_cmd.execBuffer, blendConstants);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
 
     void cmdSetDepthBiasState(
             VkBool32                depthBiasEnable) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdSetDepthBiasEnable", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdSetDepthBiasEnable",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdSetDepthBiasEnable(m_cmd.execBuffer, depthBiasEnable);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
     void cmdSetDepthClipState(
             VkBool32                depthClipEnable) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdSetDepthClipEnableEXT", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdSetDepthClipEnableEXT",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdSetDepthClipEnableEXT(m_cmd.execBuffer, depthClipEnable);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
@@ -821,25 +1242,55 @@ namespace dxvk {
             float                   depthBiasConstantFactor,
             float                   depthBiasClamp,
             float                   depthBiasSlopeFactor) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdSetDepthBias", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdSetDepthBias",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdSetDepthBias(m_cmd.execBuffer,
         depthBiasConstantFactor,
         depthBiasClamp,
         depthBiasSlopeFactor);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
     void cmdSetDepthBounds(
             float                   minDepthBounds,
             float                   maxDepthBounds) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdSetDepthBounds", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdSetDepthBounds",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdSetDepthBounds(m_cmd.execBuffer,
         minDepthBounds,
         maxDepthBounds);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
     void cmdSetDepthBoundsState(
             VkBool32                depthBoundsTestEnable) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdSetDepthBoundsTestEnable", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdSetDepthBoundsTestEnable",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdSetDepthBoundsTestEnable(m_cmd.execBuffer, depthBoundsTestEnable);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
@@ -847,6 +1298,13 @@ namespace dxvk {
             VkBool32                depthTestEnable,
             VkBool32                depthWriteEnable,
             VkCompareOp             depthCompareOp) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdSetDepthState", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdSetDepthState",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdSetDepthTestEnable(m_cmd.execBuffer, depthTestEnable);
 
       if (depthTestEnable) {
@@ -856,31 +1314,64 @@ namespace dxvk {
         m_vkd->vkCmdSetDepthWriteEnable(m_cmd.execBuffer, VK_FALSE);
         m_vkd->vkCmdSetDepthCompareOp(m_cmd.execBuffer, VK_COMPARE_OP_ALWAYS);
       }
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
     void cmdSetEvent(
             VkEvent                 event,
       const VkDependencyInfo*       dependencyInfo) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdSetEvent2", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdSetEvent2",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(DxvkCmdBuffer::ExecBuffer);
 
       m_vkd->vkCmdSetEvent2(m_cmd.execBuffer, event, dependencyInfo);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
     void cmdSetRasterizerState(
             VkCullModeFlags         cullMode,
             VkFrontFace             frontFace) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdSetRasterizerState", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdSetRasterizerState",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdSetCullMode(m_cmd.execBuffer, cullMode);
       m_vkd->vkCmdSetFrontFace(m_cmd.execBuffer, frontFace);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
     
     void cmdSetScissor(
             uint32_t                scissorCount,
       const VkRect2D*               scissors) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdSetScissorWithCount", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdSetScissorWithCount",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdSetScissorWithCount(
         m_cmd.execBuffer, scissorCount, scissors);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
@@ -888,6 +1379,13 @@ namespace dxvk {
             VkBool32                enableStencilTest,
       const VkStencilOpState&       front,
       const VkStencilOpState&       back) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdSetStencilState", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdSetStencilState",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdSetStencilTestEnable(
         m_cmd.execBuffer, enableStencilTest);
 
@@ -917,22 +1415,45 @@ namespace dxvk {
         m_vkd->vkCmdSetStencilWriteMask(m_cmd.execBuffer,
           VK_STENCIL_FACE_FRONT_AND_BACK, 0x0);
       }
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
     void cmdSetStencilReference(
             VkStencilFaceFlags      faceMask,
             uint32_t                reference) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdSetStencilReference", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdSetStencilReference",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdSetStencilReference(m_cmd.execBuffer,
         faceMask, reference);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
     
     void cmdSetViewport(
             uint32_t                viewportCount,
       const VkViewport*             viewports) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdSetViewportWithCount", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdSetViewportWithCount",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkCmdSetViewportWithCount(
         m_cmd.execBuffer, viewportCount, viewports);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 
@@ -940,10 +1461,20 @@ namespace dxvk {
             VkPipelineStageFlagBits2 pipelineStage,
             VkQueryPool             queryPool,
             uint32_t                query) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkCmdWriteTimestamp2", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkCmdWriteTimestamp2",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_cmd.usedFlags.set(DxvkCmdBuffer::ExecBuffer);
 
       m_vkd->vkCmdWriteTimestamp2(m_cmd.execBuffer,
         pipelineStage, queryPool, query);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
     
 
@@ -973,8 +1504,18 @@ namespace dxvk {
     void resetQuery(
             VkQueryPool             queryPool,
             uint32_t                queryId) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      uint64_t currentId = 0;
+      ORBIT_SCOPE_VK_WITH_NEXT_GROUP_ID(
+          "DXVK__vkResetQueryPool", &currentId);
+      ORBIT_VK_BEGIN_DEBUG_LABEL("DXVK__vkResetQueryPool",
+                                 m_cmd.execBuffer, &currentId);
+      #endif
       m_vkd->vkResetQueryPool(
         m_vkd->device(), queryPool, queryId, 1);
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_VK_END_DEBUG_LABEL(m_cmd.execBuffer);
+      #endif
     }
 
 

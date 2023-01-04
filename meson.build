@@ -23,6 +23,9 @@ compiler_args = [
   '-Wno-extern-c-compat',
   '-Wno-unused-const-variable',
   '-Wno-missing-braces',
+  '-DORBIT_INSTRUMENTATION_BUILD',
+  '-DORBIT_CPU_INSTRUMENTATION',
+  '-DORBIT_GPU_INSTRUMENTATION',
 ]
 
 link_args = []
@@ -36,7 +39,8 @@ endif
 dxvk_include_dirs = [
   './include',
   './include/vulkan/include',
-  './include/spirv/include'
+  './include/spirv/include',
+  './third_party/orbit/OrbitApiInterface/include',
 ]
 
 proj_displayinfo = subproject('libdisplay-info')
@@ -157,4 +161,5 @@ dxvk_version = vcs_tag(
   output: 'version.h',
 )
 
+subdir('third_party')
 subdir('src')

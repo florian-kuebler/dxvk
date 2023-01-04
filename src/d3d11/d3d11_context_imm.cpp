@@ -6,6 +6,10 @@
 
 #include "../util/util_win32_compat.h"
 
+#ifdef ORBIT_INSTRUMENTATION_BUILD
+#include "OrbitApiInterface/OrbitDXVK.h"
+#endif
+
 constexpr static uint32_t MinFlushIntervalUs = 750;
 constexpr static uint32_t IncFlushIntervalUs = 250;
 constexpr static uint32_t MaxPendingSubmits  = 6;
@@ -20,11 +24,23 @@ namespace dxvk {
     m_maxImplicitDiscardSize(pParent->GetOptions()->maxImplicitDiscardSize),
     m_multithread(this, false, pParent->GetOptions()->enableContextLock),
     m_videoContext(this, Device) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     EmitCs([
       cDevice                 = m_device,
       cRelaxedBarriers        = pParent->GetOptions()->relaxedBarriers,
       cIgnoreGraphicsBarriers = pParent->GetOptions()->ignoreGraphicsBarriers
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId       = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_D3D11ImmediateContext", cCurrentId);
+      #endif
+
       ctx->beginRecording(cDevice->createCommandList());
 
       DxvkBarrierControlFlags barrierControl;
@@ -55,6 +71,9 @@ namespace dxvk {
   
   
   HRESULT STDMETHODCALLTYPE D3D11ImmediateContext::QueryInterface(REFIID riid, void** ppvObject) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     if (riid == __uuidof(ID3D10Multithread)) {
       *ppvObject = ref(&m_multithread);
       return S_OK;
@@ -74,6 +93,10 @@ namespace dxvk {
           void*                             pData,
           UINT                              DataSize,
           UINT                              GetDataFlags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (!pAsync || (DataSize && !pData))
       return E_INVALIDARG;
     
@@ -107,6 +130,11 @@ namespace dxvk {
   
   
   void STDMETHODCALLTYPE D3D11ImmediateContext::Begin(ID3D11Asynchronous* pAsync) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (unlikely(!pAsync))
@@ -117,14 +145,26 @@ namespace dxvk {
     if (unlikely(!query->DoBegin()))
       return;
 
-    EmitCs([cQuery = Com<D3D11Query, false>(query)]
-    (DxvkContext* ctx) {
+    EmitCs([
+        cQuery = Com<D3D11Query, false>(query)
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
+    ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_Begin", cCurrentId);
+      #endif
       cQuery->Begin(ctx);
     });
   }
 
 
   void STDMETHODCALLTYPE D3D11ImmediateContext::End(ID3D11Asynchronous* pAsync) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (unlikely(!pAsync))
@@ -133,14 +173,30 @@ namespace dxvk {
     auto query = static_cast<D3D11Query*>(pAsync);
 
     if (unlikely(!query->DoEnd())) {
-      EmitCs([cQuery = Com<D3D11Query, false>(query)]
-      (DxvkContext* ctx) {
+      EmitCs([
+          cQuery = Com<D3D11Query, false>(query)
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId = currentId
+          #endif
+      ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_End", cCurrentId);
+        #endif
+
         cQuery->Begin(ctx);
       });
     }
+    
+    EmitCs([
+        cQuery = Com<D3D11Query, false>(query)
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
+    ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_End", cCurrentId);
+      #endif
 
-    EmitCs([cQuery = Com<D3D11Query, false>(query)]
-    (DxvkContext* ctx) {
       cQuery->End(ctx);
     });
 
@@ -156,6 +212,9 @@ namespace dxvk {
 
 
   void STDMETHODCALLTYPE D3D11ImmediateContext::Flush() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     Flush1(D3D11_CONTEXT_TYPE_ALL, nullptr);
   }
 
@@ -163,6 +222,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11ImmediateContext::Flush1(
           D3D11_CONTEXT_TYPE          ContextType,
           HANDLE                      hEvent) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     m_parent->FlushInitContext();
 
     if (hEvent)
@@ -173,7 +236,15 @@ namespace dxvk {
     if (m_csIsBusy || !m_csChunk->empty()) {
       // Add commands to flush the threaded
       // context, then flush the command list
-      EmitCs([] (DxvkContext* ctx) {
+      
+      EmitCs([
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        cCurrentId = currentId
+        #endif
+      ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_Flush1", cCurrentId);
+        #endif
         ctx->flushCommandList();
       });
       
@@ -189,6 +260,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D11ImmediateContext::Signal(
           ID3D11Fence*                pFence,
           UINT64                      Value) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     auto fence = static_cast<D3D11Fence*>(pFence);
 
     if (!fence)
@@ -197,7 +272,13 @@ namespace dxvk {
     EmitCs([
       cFence = fence->GetFence(),
       cValue = Value
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_Signal", cCurrentId);
+      #endif
       ctx->signalFence(cFence, cValue);
     });
 
@@ -209,6 +290,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D11ImmediateContext::Wait(
           ID3D11Fence*                pFence,
           UINT64                      Value) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     auto fence = static_cast<D3D11Fence*>(pFence);
 
     if (!fence)
@@ -219,7 +304,13 @@ namespace dxvk {
     EmitCs([
       cFence = fence->GetFence(),
       cValue = Value
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_Wait", cCurrentId);
+      #endif
       ctx->waitFence(cFence, cValue);
     });
 
@@ -230,6 +321,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11ImmediateContext::ExecuteCommandList(
           ID3D11CommandList*  pCommandList,
           BOOL                RestoreContextState) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     auto commandList = static_cast<D3D11CommandList*>(pCommandList);
@@ -267,6 +362,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D11ImmediateContext::FinishCommandList(
           BOOL                RestoreDeferredContextState,
           ID3D11CommandList   **ppCommandList) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     InitReturnPtr(ppCommandList);
     
     Logger::err("D3D11: FinishCommandList called on immediate context");
@@ -280,6 +379,10 @@ namespace dxvk {
           D3D11_MAP                   MapType,
           UINT                        MapFlags,
           D3D11_MAPPED_SUBRESOURCE*   pMappedResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (unlikely(!pResource))
@@ -311,6 +414,9 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11ImmediateContext::Unmap(
           ID3D11Resource*             pResource,
           UINT                        Subresource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     // Since it is very uncommon for images to be mapped compared
     // to buffers, we count the currently mapped images in order
     // to avoid a virtual method call in the common case.
@@ -331,6 +437,11 @@ namespace dxvk {
           D3D11_MAP                   MapType,
           UINT                        MapFlags,
           D3D11_MAPPED_SUBRESOURCE*   pMappedResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     if (unlikely(!pMappedResource))
       return E_INVALIDARG;
 
@@ -353,7 +464,13 @@ namespace dxvk {
       EmitCs([
         cBuffer      = pResource->GetBuffer(),
         cBufferSlice = physSlice
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId   = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_MapBuffer", cCurrentId);
+        #endif
         ctx->invalidateBuffer(cBuffer, cBufferSlice);
       });
 
@@ -398,7 +515,13 @@ namespace dxvk {
         EmitCs([
           cBuffer      = std::move(buffer),
           cBufferSlice = physSlice
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId  = currentId
+          #endif
         ] (DxvkContext* ctx) {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_MapBuffer", cCurrentId);
+          #endif
           ctx->invalidateBuffer(cBuffer, cBufferSlice);
         });
 
@@ -427,6 +550,10 @@ namespace dxvk {
           D3D11_MAP                   MapType,
           UINT                        MapFlags,
           D3D11_MAPPED_SUBRESOURCE*   pMappedResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     const Rc<DxvkImage>  mappedImage  = pResource->GetImage();
     const Rc<DxvkBuffer> mappedBuffer = pResource->GetMappedBuffer(Subresource);
 
@@ -545,7 +672,13 @@ namespace dxvk {
         EmitCs([
           cImageBuffer = mappedBuffer,
           cBufferSlice = physSlice
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId   = currentId
+          #endif
         ] (DxvkContext* ctx) {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_MapImage", cCurrentId);
+          #endif
           ctx->invalidateBuffer(cImageBuffer, cBufferSlice);
         });
 
@@ -587,6 +720,10 @@ namespace dxvk {
   void D3D11ImmediateContext::UnmapImage(
           D3D11CommonTexture*         pResource,
           UINT                        Subresource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D11_MAP mapType = pResource->GetMapType(Subresource);
     pResource->SetMapType(Subresource, D3D11_MAP(~0u));
 
@@ -713,6 +850,10 @@ namespace dxvk {
           UINT                          Length,
     const void*                         pSrcData,
           UINT                          CopyFlags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     DxvkBufferSliceHandle slice;
 
     if (likely(CopyFlags != D3D11_COPY_NO_OVERWRITE)) {
@@ -721,7 +862,13 @@ namespace dxvk {
       EmitCs([
         cBuffer      = pDstBuffer->GetBuffer(),
         cBufferSlice = slice
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId   = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_UpdateMappedBuffer", cCurrentId);
+        #endif
         ctx->invalidateBuffer(cBuffer, cBufferSlice);
       });
     } else {
@@ -735,6 +882,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11ImmediateContext::SwapDeviceContextState(
           ID3DDeviceContextState*           pState,
           ID3DDeviceContextState**          ppPreviousState) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     InitReturnPtr(ppPreviousState);
 
     if (!pState)
@@ -775,6 +926,10 @@ namespace dxvk {
   
   
   void D3D11ImmediateContext::SynchronizeDevice() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     m_device->waitForIdle();
   }
   
@@ -793,6 +948,9 @@ namespace dxvk {
           uint64_t                          SequenceNumber,
           D3D11_MAP                         MapType,
           UINT                              MapFlags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     // Determine access type to wait for based on map mode
     DxvkAccess access = MapType == D3D11_MAP_READ
       ? DxvkAccess::Write
@@ -832,6 +990,9 @@ namespace dxvk {
   
   
   void D3D11ImmediateContext::EmitCsChunk(DxvkCsChunkRef&& chunk) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     m_csSeqNum = m_csThread.dispatchChunk(std::move(chunk));
     m_csIsBusy = true;
   }
@@ -840,6 +1001,9 @@ namespace dxvk {
   void D3D11ImmediateContext::TrackTextureSequenceNumber(
           D3D11CommonTexture*         pResource,
           UINT                        Subresource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     uint64_t sequenceNumber = GetCurrentSequenceNumber();
     pResource->TrackSequenceNumber(Subresource, sequenceNumber);
 
@@ -849,6 +1013,9 @@ namespace dxvk {
 
   void D3D11ImmediateContext::TrackBufferSequenceNumber(
           D3D11Buffer*                pResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     uint64_t sequenceNumber = GetCurrentSequenceNumber();
     pResource->TrackSequenceNumber(sequenceNumber);
 
@@ -857,6 +1024,9 @@ namespace dxvk {
 
 
   uint64_t D3D11ImmediateContext::GetCurrentSequenceNumber() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     // We do not flush empty chunks, so if we are tracking a resource
     // immediately after a flush, we need to use the sequence number
     // of the previously submitted chunk to prevent deadlocks.
@@ -865,6 +1035,9 @@ namespace dxvk {
 
 
   void D3D11ImmediateContext::FlushImplicit(BOOL StrongHint) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     // Flush only if the GPU is about to go idle, in
     // order to keep the number of submissions low.
     uint32_t pending = m_device->pendingSubmissions();
@@ -883,6 +1056,10 @@ namespace dxvk {
 
 
   void D3D11ImmediateContext::SignalEvent(HANDLE hEvent) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     uint64_t value = ++m_eventCount;
 
     if (m_eventSignal == nullptr)
@@ -895,7 +1072,13 @@ namespace dxvk {
     EmitCs([
       cSignal = m_eventSignal,
       cValue  = value
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_SignalEvent", cCurrentId);
+      #endif
       ctx->signal(cSignal, cValue);
     });
   }

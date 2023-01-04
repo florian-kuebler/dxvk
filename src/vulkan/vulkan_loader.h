@@ -358,6 +358,8 @@ namespace dxvk::vk {
     VULKAN_FN(vkQueueInsertDebugUtilsLabelEXT);
     VULKAN_FN(vkSetDebugUtilsObjectNameEXT);
     VULKAN_FN(vkSetDebugUtilsObjectTagEXT);
+    VULKAN_FN(vkCmdBeginDebugUtilsLabelEXT);
+    VULKAN_FN(vkCmdEndDebugUtilsLabelEXT);
     #endif
 
     #ifdef VK_EXT_extended_dynamic_state3

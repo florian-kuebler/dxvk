@@ -1,0 +1,23 @@
+name: "OrbitApiInterface"
+description:
+    "Header definitions for Orbit's (Cpu & System Profiler) manual instrumentation API."
+
+third_party: {
+  type: PACKAGE  # `type` defaults to `PACKAGE`, so typically this line is omitted
+  url {
+    type: GIT
+    value: "https://github.com/google/orbit"
+  }
+  version: "1.86-dev"
+  last_upgrade_date {
+    year: 2023
+    month: 1
+    day: 4
+  }
+  local_modifications  [
+    "Copied the ApiInterface project and renamed it to OrbitApiInterface",
+    "Added OrbitDXVK helper macros",
+    "Temporarily changed _ReturnAdress to gcc intrinsic for mingw"
+  ]
+}
+

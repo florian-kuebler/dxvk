@@ -1,6 +1,9 @@
 #include "d3d11_context_imm.h"
 #include "d3d11_device.h"
 #include "d3d11_swapchain.h"
+#ifdef ORBIT_INSTRUMENTATION_BUILD
+#include "OrbitApiInterface/OrbitDXVK.h"
+#endif
 
 #include "../util/util_win32_compat.h"
 
@@ -92,6 +95,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D11SwapChain::QueryInterface(
           REFIID                  riid,
           void**                  ppvObject) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     if (ppvObject == nullptr)
       return E_POINTER;
 
@@ -110,6 +116,9 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D11SwapChain::GetDesc(
           DXGI_SWAP_CHAIN_DESC1*    pDesc) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     *pDesc = m_desc;
     return S_OK;
   }
@@ -118,6 +127,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D11SwapChain::GetAdapter(
           REFIID                    riid,
           void**                    ppvObject) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     return m_dxgiDevice->GetParent(riid, ppvObject);
   }
 
@@ -125,6 +137,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D11SwapChain::GetDevice(
           REFIID                    riid,
           void**                    ppDevice) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     return m_dxgiDevice->QueryInterface(riid, ppDevice);
   }
 
@@ -133,6 +148,9 @@ namespace dxvk {
           UINT                      BufferId,
           REFIID                    riid,
           void**                    ppBuffer) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     InitReturnPtr(ppBuffer);
 
     if (BufferId > 0) {
@@ -145,16 +163,25 @@ namespace dxvk {
 
 
   UINT STDMETHODCALLTYPE D3D11SwapChain::GetImageIndex() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     return 0;
   }
 
 
   UINT STDMETHODCALLTYPE D3D11SwapChain::GetFrameLatency() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     return m_frameLatency;
   }
 
 
   HANDLE STDMETHODCALLTYPE D3D11SwapChain::GetFrameLatencyEvent() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     HANDLE result = nullptr;
 
     if (!m_processHandle)
@@ -174,6 +201,9 @@ namespace dxvk {
     const DXGI_SWAP_CHAIN_DESC1*    pDesc,
     const UINT*                     pNodeMasks,
           IUnknown* const*          ppPresentQueues) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     m_dirty |= m_desc.Format      != pDesc->Format
             || m_desc.Width       != pDesc->Width
             || m_desc.Height      != pDesc->Height
@@ -188,6 +218,9 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D11SwapChain::SetPresentRegion(
     const RECT*                     pRegion) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     // TODO implement
     return E_NOTIMPL;
   }
@@ -196,6 +229,9 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D11SwapChain::SetGammaControl(
           UINT                      NumControlPoints,
     const DXGI_RGB*                 pControlPoints) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     bool isIdentity = true;
 
     if (NumControlPoints > 1) {
@@ -230,6 +266,9 @@ namespace dxvk {
 
   HRESULT STDMETHODCALLTYPE D3D11SwapChain::SetFrameLatency(
           UINT                      MaxLatency) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     if (MaxLatency == 0 || MaxLatency > DXGI_MAX_SWAP_CHAIN_BUFFERS)
       return DXGI_ERROR_INVALID_CALL;
 
@@ -251,6 +290,9 @@ namespace dxvk {
           UINT                      SyncInterval,
           UINT                      PresentFlags,
     const DXGI_PRESENT_PARAMETERS*  pPresentParameters) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     auto options = m_parent->GetOptions();
 
     if (options->syncInterval >= 0)
@@ -322,6 +364,9 @@ namespace dxvk {
     const DXGI_VK_HDR_METADATA*     pMetaData) {
     // For some reason this call always seems to succeed on Windows
     if (pMetaData->Type == DXGI_HDR_METADATA_TYPE_HDR10) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
       m_hdrMetadata = ConvertHDRMetadata(pMetaData->HDR10);
       m_dirtyHdrMetadata = true;
     }
@@ -331,6 +376,9 @@ namespace dxvk {
 
 
   HRESULT D3D11SwapChain::PresentImage(UINT SyncInterval) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     Com<ID3D11DeviceContext> deviceContext = nullptr;
     m_parent->GetImmediateContext(&deviceContext);
 
@@ -398,6 +446,10 @@ namespace dxvk {
           D3D11ImmediateContext*  pContext,
     const vk::PresenterSync&      Sync,
           uint32_t                FrameId) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     auto lock = pContext->LockContext();
 
     // Present from CS thread so that we don't
@@ -409,7 +461,13 @@ namespace dxvk {
       cSync        = Sync,
       cHud         = m_hud,
       cCommandList = m_context->endRecording()
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId  = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_SubmitPresent", cCurrentId);
+      #endif
       cCommandList->setWsiSemaphores(cSync);
       m_device->submitCommandList(cCommandList);
 
@@ -424,6 +482,9 @@ namespace dxvk {
 
 
   void D3D11SwapChain::SynchronizePresent() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     // Recreate swap chain if the previous present call failed
     VkResult status = m_device->waitForSubmission(&m_presentStatus);
     
@@ -433,6 +494,9 @@ namespace dxvk {
 
 
   void D3D11SwapChain::RecreateSwapChain(BOOL Vsync) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     // Ensure that we can safely destroy the swap chain
     m_device->waitForSubmission(&m_presentStatus);
     m_device->waitForIdle();
@@ -468,6 +532,9 @@ namespace dxvk {
 
 
   void D3D11SwapChain::CreateFrameLatencyEvent() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     m_frameLatencySignal = new sync::CallbackFence(m_frameId);
 
     if (m_desc.Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT)
@@ -476,6 +543,9 @@ namespace dxvk {
 
 
   void D3D11SwapChain::CreatePresenter() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     DxvkDeviceQueue graphicsQueue = m_device->queues().graphics;
 
     vk::PresenterDevice presenterDevice;
@@ -512,6 +582,9 @@ namespace dxvk {
 
 
   void D3D11SwapChain::CreateRenderTargetViews() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     vk::PresenterInfo info = m_presenter->info();
 
     m_imageViews.clear();
@@ -555,6 +628,9 @@ namespace dxvk {
 
 
   void D3D11SwapChain::CreateBackBuffer() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     // Explicitly destroy current swap image before
     // creating a new one to free up resources
     m_swapImage         = nullptr;
@@ -631,11 +707,17 @@ namespace dxvk {
 
 
   void D3D11SwapChain::CreateBlitter() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     m_blitter = new DxvkSwapchainBlitter(m_device);    
   }
 
 
   void D3D11SwapChain::CreateHud() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     m_hud = hud::Hud::createHud(m_device);
 
     if (m_hud != nullptr)
@@ -644,11 +726,17 @@ namespace dxvk {
 
 
   void D3D11SwapChain::DestroyFrameLatencyEvent() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     CloseHandle(m_frameLatencyEvent);
   }
 
 
   void D3D11SwapChain::SyncFrameLatency() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     // Wait for the sync event so that we respect the maximum frame latency
     m_frameLatencySignal->wait(m_frameId - GetActualFrameLatency());
 
@@ -661,6 +749,9 @@ namespace dxvk {
 
 
   uint32_t D3D11SwapChain::GetActualFrameLatency() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     // DXGI does not seem to implicitly synchronize waitable swap chains,
     // so in that case we should just respect the user config. For regular
     // swap chains, pick the latency from the DXGI device.
@@ -680,6 +771,9 @@ namespace dxvk {
   uint32_t D3D11SwapChain::PickFormats(
           DXGI_FORMAT               Format,
           VkSurfaceFormatKHR*       pDstFormats) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     uint32_t n = 0;
 
     switch (Format) {
@@ -716,6 +810,9 @@ namespace dxvk {
   uint32_t D3D11SwapChain::PickPresentModes(
           BOOL                      Vsync,
           VkPresentModeKHR*         pDstModes) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     uint32_t n = 0;
 
     if (Vsync) {
@@ -734,12 +831,18 @@ namespace dxvk {
 
   uint32_t D3D11SwapChain::PickImageCount(
           UINT                      Preferred) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     int32_t option = m_parent->GetOptions()->numBackBuffers;
     return option > 0 ? uint32_t(option) : uint32_t(Preferred);
   }
 
 
   VkFullScreenExclusiveEXT D3D11SwapChain::PickFullscreenMode() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     return m_desc.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
       ? VK_FULL_SCREEN_EXCLUSIVE_ALLOWED_EXT
       : VK_FULL_SCREEN_EXCLUSIVE_DISALLOWED_EXT;
@@ -747,6 +850,9 @@ namespace dxvk {
 
 
   std::string D3D11SwapChain::GetApiName() const {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     Com<IDXGIDXVKDevice> device;
     m_parent->QueryInterface(__uuidof(IDXGIDXVKDevice), reinterpret_cast<void**>(&device));
 

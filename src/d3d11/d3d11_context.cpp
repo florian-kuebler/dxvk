@@ -4,6 +4,10 @@
 #include "d3d11_context_def.h"
 #include "d3d11_context_imm.h"
 
+#ifdef ORBIT_INSTRUMENTATION_BUILD
+#include "OrbitApiInterface/OrbitDXVK.h"
+#endif
+
 namespace dxvk {
 
   template<typename ContextType>
@@ -33,6 +37,9 @@ namespace dxvk {
 
   template<typename ContextType>
   HRESULT STDMETHODCALLTYPE D3D11CommonContext<ContextType>::QueryInterface(REFIID riid, void** ppvObject) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     if (ppvObject == nullptr)
       return E_POINTER;
 
@@ -69,6 +76,9 @@ namespace dxvk {
 
   template<typename ContextType>
   D3D11_DEVICE_CONTEXT_TYPE STDMETHODCALLTYPE D3D11CommonContext<ContextType>::GetType() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     return IsDeferred
       ? D3D11_DEVICE_CONTEXT_DEFERRED
       : D3D11_DEVICE_CONTEXT_IMMEDIATE;
@@ -77,12 +87,18 @@ namespace dxvk {
 
   template<typename ContextType>
   UINT STDMETHODCALLTYPE D3D11CommonContext<ContextType>::GetContextFlags() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     return m_flags;
   }
 
 
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::ClearState() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     ResetCommandListState();
@@ -92,6 +108,9 @@ namespace dxvk {
 
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::DiscardResource(ID3D11Resource* pResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     if (!pResource)
@@ -114,6 +133,9 @@ namespace dxvk {
 
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::DiscardView(ID3D11View* pResourceView) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     DiscardView1(pResourceView, nullptr, 0);
   }
 
@@ -123,6 +145,10 @@ namespace dxvk {
           ID3D11View*              pResourceView,
     const D3D11_RECT*              pRects,
           UINT                     NumRects) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     // We don't support discarding individual rectangles
@@ -161,7 +187,15 @@ namespace dxvk {
 
     // Since we don't handle SRVs here, we can assume that the
     // view covers all aspects of the underlying resource.
-    EmitCs([cView = view] (DxvkContext* ctx) {
+    EmitCs([
+      cView = view
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
+    ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_DiscardView1", cCurrentId);
+      #endif
       ctx->discardImageView(cView, cView->formatInfo()->aspectMask);
     });
   }
@@ -177,6 +211,10 @@ namespace dxvk {
           ID3D11Resource*                   pSrcResource,
           UINT                              SrcSubresource,
     const D3D11_BOX*                        pSrcBox) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     CopySubresourceRegion1(
       pDstResource, DstSubresource, DstX, DstY, DstZ,
       pSrcResource, SrcSubresource, pSrcBox, 0);
@@ -194,6 +232,10 @@ namespace dxvk {
           UINT                              SrcSubresource,
     const D3D11_BOX*                        pSrcBox,
           UINT                              CopyFlags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (!pDstResource || !pSrcResource)
@@ -266,6 +308,9 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::CopyResource(
           ID3D11Resource*                   pDstResource,
           ID3D11Resource*                   pSrcResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     if (!pDstResource || !pSrcResource || (pDstResource == pSrcResource))
@@ -321,6 +366,10 @@ namespace dxvk {
           ID3D11Buffer*                     pDstBuffer,
           UINT                              DstAlignedByteOffset,
           ID3D11UnorderedAccessView*        pSrcView) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     auto buf = static_cast<D3D11Buffer*>(pDstBuffer);
@@ -336,7 +385,13 @@ namespace dxvk {
     EmitCs([
       cDstSlice = buf->GetBufferSlice(DstAlignedByteOffset),
       cSrcSlice = std::move(counterSlice)
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_CopyStructureCount", cCurrentId);
+      #endif
       ctx->copyBuffer(
         cDstSlice.buffer(),
         cDstSlice.offset(),
@@ -354,6 +409,11 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::ClearRenderTargetView(
           ID3D11RenderTargetView*           pRenderTargetView,
     const FLOAT                             ColorRGBA[4]) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     auto rtv = static_cast<D3D11RenderTargetView*>(pRenderTargetView);
@@ -367,7 +427,13 @@ namespace dxvk {
     EmitCs([
       cClearValue = color,
       cImageView  = std::move(view)
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId  = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ClearRenderTargetView", cCurrentId);
+      #endif
       ctx->clearRenderTarget(
         cImageView,
         VK_IMAGE_ASPECT_COLOR_BIT,
@@ -380,6 +446,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::ClearUnorderedAccessViewUint(
           ID3D11UnorderedAccessView*        pUnorderedAccessView,
     const UINT                              Values[4]) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     auto uav = static_cast<D3D11UnorderedAccessView*>(pUnorderedAccessView);
@@ -431,7 +501,13 @@ namespace dxvk {
         EmitCs([
           cClearValue = clearValue.color.uint32[0],
           cDstSlice   = bufferView->slice()
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId  = currentId
+          #endif
         ] (DxvkContext* ctx) {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ClearUnorderedAccessViewUint", cCurrentId);
+          #endif
           ctx->clearBuffer(
             cDstSlice.buffer(),
             cDstSlice.offset(),
@@ -451,7 +527,13 @@ namespace dxvk {
         EmitCs([
           cClearValue = clearValue,
           cDstView    = bufferView
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId  = currentId
+          #endif
         ] (DxvkContext* ctx) {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ClearUnorderedAccessViewUint", cCurrentId);
+          #endif
           ctx->clearBufferView(
             cDstView, 0,
             cDstView->elementCount(),
@@ -490,7 +572,13 @@ namespace dxvk {
         EmitCs([
           cClearValue = clearValue,
           cDstView    = imageView
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId  = currentId
+          #endif
         ] (DxvkContext* ctx) {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ClearUnorderedAccessViewUint", cCurrentId);
+          #endif
           ctx->clearImageView(cDstView,
             VkOffset3D { 0, 0, 0 },
             cDstView->mipLevelExtent(0),
@@ -524,7 +612,13 @@ namespace dxvk {
           cDstView    = std::move(imageView),
           cSrcView    = std::move(bufferView),
           cClearValue = clearValue.color
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId  = currentId
+          #endif
         ] (DxvkContext* ctx) {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ClearUnorderedAccessViewUint", cCurrentId);
+          #endif
           ctx->clearBufferView(
             cSrcView, 0,
             cSrcView->elementCount(),
@@ -545,6 +639,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::ClearUnorderedAccessViewFloat(
           ID3D11UnorderedAccessView*        pUnorderedAccessView,
     const FLOAT                             Values[4]) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     auto uav = static_cast<D3D11UnorderedAccessView*>(pUnorderedAccessView);
@@ -572,7 +670,13 @@ namespace dxvk {
       EmitCs([
         cClearValue = clearValue,
         cDstView    = std::move(bufView)
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId  = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ClearUnorderedAccessViewFloat", cCurrentId);
+        #endif
         ctx->clearBufferView(
           cDstView, 0,
           cDstView->elementCount(),
@@ -582,7 +686,13 @@ namespace dxvk {
       EmitCs([
         cClearValue = clearValue,
         cDstView    = std::move(imgView)
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId  = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ClearUnorderedAccessViewFloat", cCurrentId);
+        #endif
         ctx->clearImageView(cDstView,
           VkOffset3D { 0, 0, 0 },
           cDstView->mipLevelExtent(0),
@@ -599,6 +709,10 @@ namespace dxvk {
           UINT                              ClearFlags,
           FLOAT                             Depth,
           UINT8                             Stencil) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     auto dsv = static_cast<D3D11DepthStencilView*>(pDepthStencilView);
@@ -629,7 +743,13 @@ namespace dxvk {
       cClearValue = clearValue,
       cAspectMask = aspectMask,
       cImageView  = dsv->GetImageView()
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId  = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ClearDepthStencilView", cCurrentId);
+      #endif
       ctx->clearRenderTarget(
         cImageView,
         cAspectMask,
@@ -644,6 +764,11 @@ namespace dxvk {
     const FLOAT                             Color[4],
     const D3D11_RECT*                       pRect,
           UINT                              NumRects) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (NumRects && !pRect)
@@ -724,7 +849,13 @@ namespace dxvk {
           cRangeOffset  = offset,
           cRangeLength  = length,
           cClearValue   = clearValue
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId    = currentId
+          #endif
         ] (DxvkContext* ctx) {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ClearView", cCurrentId);
+          #endif
           ctx->clearBufferView(
             cBufferView,
             cRangeOffset,
@@ -750,7 +881,13 @@ namespace dxvk {
           cAreaExtent   = extent,
           cClearAspect  = clearAspect,
           cClearValue   = clearValue
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId    = currentId
+          #endif
         ] (DxvkContext* ctx) {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ClearView", cCurrentId);
+          #endif
           const VkImageUsageFlags rtUsage =
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -778,6 +915,10 @@ namespace dxvk {
 
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::GenerateMips(ID3D11ShaderResourceView* pShaderResourceView) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     auto view = static_cast<D3D11ShaderResourceView*>(pShaderResourceView);
@@ -789,9 +930,17 @@ namespace dxvk {
 
     if (!(resourceDesc.MiscFlags & D3D11_RESOURCE_MISC_GENERATE_MIPS))
       return;
-
-    EmitCs([cDstImageView = view->GetImageView()]
-    (DxvkContext* ctx) {
+    
+    
+    EmitCs([
+      cDstImageView = view->GetImageView()
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
+    ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_GenerateMips", cCurrentId);
+      #endif
       ctx->generateMipmaps(cDstImageView, VK_FILTER_LINEAR);
     });
   }
@@ -804,6 +953,10 @@ namespace dxvk {
           ID3D11Resource*                   pSrcResource,
           UINT                              SrcSubresource,
           DXGI_FORMAT                       Format) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     bool isSameSubresource = pDstResource   == pSrcResource
@@ -871,7 +1024,14 @@ namespace dxvk {
         cSrcImage  = srcTextureInfo->GetImage(),
         cDstLayers = dstSubresourceLayers,
         cSrcLayers = srcSubresourceLayers
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ResolveSubresource", cCurrentId);
+        #endif
+
         ctx->copyImage(
           cDstImage, cDstLayers, VkOffset3D { 0, 0, 0 },
           cSrcImage, cSrcLayers, VkOffset3D { 0, 0, 0 },
@@ -887,7 +1047,14 @@ namespace dxvk {
         cDstSubres = dstSubresourceLayers,
         cSrcSubres = srcSubresourceLayers,
         cFormat    = format
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ResolveSubresource", cCurrentId);
+        #endif
+
         VkImageResolve region;
         region.srcSubresource = cSrcSubres;
         region.srcOffset      = VkOffset3D { 0, 0, 0 };
@@ -912,6 +1079,9 @@ namespace dxvk {
     const void*                             pSrcData,
           UINT                              SrcRowPitch,
           UINT                              SrcDepthPitch) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     UpdateResource(pDstResource, DstSubresource, pDstBox,
       pSrcData, SrcRowPitch, SrcDepthPitch, 0);
   }
@@ -926,6 +1096,9 @@ namespace dxvk {
           UINT                              SrcRowPitch,
           UINT                              SrcDepthPitch,
           UINT                              CopyFlags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     UpdateResource(pDstResource, DstSubresource, pDstBox,
       pSrcData, SrcRowPitch, SrcDepthPitch, CopyFlags);
   }
@@ -933,6 +1106,10 @@ namespace dxvk {
 
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::DrawAuto() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     D3D11Buffer* buffer = m_state.ia.vertexBuffers[0].buffer.ptr();
@@ -946,7 +1123,15 @@ namespace dxvk {
     if (!ctrBuf.defined())
       return;
 
-    EmitCs([=] (DxvkContext* ctx) {
+    
+    EmitCs([=
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ,cCurrentId  = currentId
+    #endif
+    ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_DrawAuto", cCurrentId);
+      #endif
       ctx->drawIndirectXfb(ctrBuf,
         vtxBuf.buffer()->getXfbVertexStride(),
         vtxBuf.offset());
@@ -958,9 +1143,21 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::Draw(
           UINT            VertexCount,
           UINT            StartVertexLocation) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D10DeviceLock lock = LockContext();
 
-    EmitCs([=] (DxvkContext* ctx) {
+    
+    EmitCs([=
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ,cCurrentId = currentId
+    #endif
+    ](DxvkContext* ctx) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_Draw", cCurrentId);
+    #endif
       ctx->draw(
         VertexCount, 1,
         StartVertexLocation, 0);
@@ -973,9 +1170,20 @@ namespace dxvk {
           UINT            IndexCount,
           UINT            StartIndexLocation,
           INT             BaseVertexLocation) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D10DeviceLock lock = LockContext();
 
-    EmitCs([=] (DxvkContext* ctx) {
+    EmitCs([=
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
+    ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_DrawIndexed", cCurrentId);
+      #endif
       ctx->drawIndexed(
         IndexCount, 1,
         StartIndexLocation,
@@ -990,9 +1198,21 @@ namespace dxvk {
           UINT            InstanceCount,
           UINT            StartVertexLocation,
           UINT            StartInstanceLocation) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D10DeviceLock lock = LockContext();
 
-    EmitCs([=] (DxvkContext* ctx) {
+    EmitCs([=
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
+    ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_DrawInstanced", cCurrentId);
+      #endif
+
       ctx->draw(
         VertexCountPerInstance,
         InstanceCount,
@@ -1009,9 +1229,20 @@ namespace dxvk {
           UINT            StartIndexLocation,
           INT             BaseVertexLocation,
           UINT            StartInstanceLocation) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D10DeviceLock lock = LockContext();
-
-    EmitCs([=] (DxvkContext* ctx) {
+    
+    EmitCs([=
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
+    ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_DrawIndexedInstanced", cCurrentId);
+      #endif
       ctx->drawIndexed(
         IndexCountPerInstance,
         InstanceCount,
@@ -1026,6 +1257,11 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::DrawIndexedInstancedIndirect(
           ID3D11Buffer*   pBufferForArgs,
           UINT            AlignedByteOffsetForArgs) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D10DeviceLock lock = LockContext();
     SetDrawBuffers(pBufferForArgs, nullptr);
 
@@ -1045,7 +1281,14 @@ namespace dxvk {
       cmdData->stride = stride;
     } else {
       cmdData = EmitCsCmd<D3D11CmdDrawIndirectData>(
-        [] (DxvkContext* ctx, const D3D11CmdDrawIndirectData* data) {
+        [
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          cCurrentId = currentId
+          #endif
+        ] (DxvkContext* ctx, const D3D11CmdDrawIndirectData* data) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+            ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_DrawIndexedInstancedIndirect", cCurrentId);
+        #endif
           ctx->drawIndexedIndirect(data->offset, data->count, data->stride);
         });
 
@@ -1061,6 +1304,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::DrawInstancedIndirect(
           ID3D11Buffer*   pBufferForArgs,
           UINT            AlignedByteOffsetForArgs) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D10DeviceLock lock = LockContext();
     SetDrawBuffers(pBufferForArgs, nullptr);
 
@@ -1080,7 +1327,14 @@ namespace dxvk {
       cmdData->stride = stride;
     } else {
       cmdData = EmitCsCmd<D3D11CmdDrawIndirectData>(
-        [] (DxvkContext* ctx, const D3D11CmdDrawIndirectData* data) {
+        [
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          cCurrentId = currentId
+          #endif
+        ] (DxvkContext* ctx, const D3D11CmdDrawIndirectData* data) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_DrawInstancedIndirect", cCurrentId);
+        #endif
           ctx->drawIndirect(data->offset, data->count, data->stride);
         });
 
@@ -1097,9 +1351,22 @@ namespace dxvk {
           UINT            ThreadGroupCountX,
           UINT            ThreadGroupCountY,
           UINT            ThreadGroupCountZ) {
-    D3D10DeviceLock lock = LockContext();
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
 
-    EmitCs([=] (DxvkContext* ctx) {
+    D3D10DeviceLock lock = LockContext();
+    
+    
+    EmitCs([=
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ,cCurrentId = currentId
+    #endif
+    ] (DxvkContext* ctx) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_Dispatch", cCurrentId);
+    #endif
       ctx->dispatch(
         ThreadGroupCountX,
         ThreadGroupCountY,
@@ -1112,14 +1379,26 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::DispatchIndirect(
           ID3D11Buffer*   pBufferForArgs,
           UINT            AlignedByteOffsetForArgs) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D10DeviceLock lock = LockContext();
     SetDrawBuffers(pBufferForArgs, nullptr);
 
     if (!ValidateDrawBufferSize(pBufferForArgs, AlignedByteOffsetForArgs, sizeof(VkDispatchIndirectCommand)))
       return;
 
-    EmitCs([cOffset = AlignedByteOffsetForArgs]
-    (DxvkContext* ctx) {
+    
+    EmitCs([cOffset = AlignedByteOffsetForArgs
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ,cCurrentId = currentId
+    #endif
+    ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_DispatchIndirect", cCurrentId);
+      #endif
       ctx->dispatchIndirect(cOffset);
     });
   }
@@ -1127,6 +1406,9 @@ namespace dxvk {
 
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::IASetInputLayout(ID3D11InputLayout* pInputLayout) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     auto inputLayout = static_cast<D3D11InputLayout*>(pInputLayout);
@@ -1150,6 +1432,9 @@ namespace dxvk {
 
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY Topology) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     if (m_state.ia.primitiveTopology != Topology) {
@@ -1166,6 +1451,10 @@ namespace dxvk {
           ID3D11Buffer* const*              ppVertexBuffers,
     const UINT*                             pStrides,
     const UINT*                             pOffsets) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     for (uint32_t i = 0; i < NumBuffers; i++) {
@@ -1196,6 +1485,10 @@ namespace dxvk {
           ID3D11Buffer*                     pIndexBuffer,
           DXGI_FORMAT                       Format,
           UINT                              Offset) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     auto newBuffer = static_cast<D3D11Buffer*>(pIndexBuffer);
@@ -1218,6 +1511,10 @@ namespace dxvk {
 
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::IAGetInputLayout(ID3D11InputLayout** ppInputLayout) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     *ppInputLayout = m_state.ia.inputLayout.ref();
@@ -1226,6 +1523,9 @@ namespace dxvk {
 
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::IAGetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY* pTopology) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     *pTopology = m_state.ia.primitiveTopology;
@@ -1239,6 +1539,10 @@ namespace dxvk {
           ID3D11Buffer**                    ppVertexBuffers,
           UINT*                             pStrides,
           UINT*                             pOffsets) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     for (uint32_t i = 0; i < NumBuffers; i++) {
@@ -1270,6 +1574,10 @@ namespace dxvk {
           ID3D11Buffer**                    ppIndexBuffer,
           DXGI_FORMAT*                      pFormat,
           UINT*                             pOffset) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (ppIndexBuffer)
@@ -1288,6 +1596,10 @@ namespace dxvk {
           ID3D11VertexShader*               pVertexShader,
           ID3D11ClassInstance* const*       ppClassInstances,
           UINT                              NumClassInstances) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     auto shader = static_cast<D3D11VertexShader*>(pVertexShader);
@@ -1308,6 +1620,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumBuffers,
           ID3D11Buffer* const*              ppConstantBuffers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     SetConstantBuffers<DxbcProgramType::VertexShader>(
@@ -1322,6 +1638,10 @@ namespace dxvk {
           ID3D11Buffer* const*              ppConstantBuffers,
     const UINT*                             pFirstConstant,
     const UINT*                             pNumConstants) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     SetConstantBuffers1<DxbcProgramType::VertexShader>(
@@ -1347,6 +1667,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumSamplers,
           ID3D11SamplerState* const*        ppSamplers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     SetSamplers<DxbcProgramType::VertexShader>(
@@ -1359,6 +1683,9 @@ namespace dxvk {
           ID3D11VertexShader**              ppVertexShader,
           ID3D11ClassInstance**             ppClassInstances,
           UINT*                             pNumClassInstances) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     if (ppVertexShader)
@@ -1374,6 +1701,9 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumBuffers,
           ID3D11Buffer**                    ppConstantBuffers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     GetConstantBuffers<DxbcProgramType::VertexShader>(
@@ -1389,6 +1719,9 @@ namespace dxvk {
           ID3D11Buffer**                    ppConstantBuffers,
           UINT*                             pFirstConstant,
           UINT*                             pNumConstants) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     GetConstantBuffers<DxbcProgramType::VertexShader>(
@@ -1402,6 +1735,9 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumViews,
           ID3D11ShaderResourceView**        ppShaderResourceViews) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     GetShaderResources<DxbcProgramType::VertexShader>(
@@ -1414,6 +1750,9 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumSamplers,
           ID3D11SamplerState**              ppSamplers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     GetSamplers<DxbcProgramType::VertexShader>(
@@ -1426,6 +1765,9 @@ namespace dxvk {
           ID3D11HullShader*                 pHullShader,
           ID3D11ClassInstance* const*       ppClassInstances,
           UINT                              NumClassInstances) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     auto shader = static_cast<D3D11HullShader*>(pHullShader);
@@ -1446,6 +1788,9 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumBuffers,
           ID3D11Buffer* const*              ppConstantBuffers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     SetConstantBuffers<DxbcProgramType::HullShader>(
@@ -1460,6 +1805,9 @@ namespace dxvk {
           ID3D11Buffer* const*              ppConstantBuffers,
     const UINT*                             pFirstConstant,
     const UINT*                             pNumConstants) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     SetConstantBuffers1<DxbcProgramType::HullShader>(
@@ -1473,6 +1821,9 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumViews,
           ID3D11ShaderResourceView* const*  ppShaderResourceViews) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     SetShaderResources<DxbcProgramType::HullShader>(
@@ -1485,6 +1836,9 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumSamplers,
           ID3D11SamplerState* const*        ppSamplers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     SetSamplers<DxbcProgramType::HullShader>(
@@ -1497,6 +1851,9 @@ namespace dxvk {
           ID3D11HullShader**                ppHullShader,
           ID3D11ClassInstance**             ppClassInstances,
           UINT*                             pNumClassInstances) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     if (ppHullShader)
@@ -1512,6 +1869,9 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumBuffers,
           ID3D11Buffer**                    ppConstantBuffers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     GetConstantBuffers<DxbcProgramType::HullShader>(
@@ -1527,6 +1887,9 @@ namespace dxvk {
           ID3D11Buffer**                    ppConstantBuffers,
           UINT*                             pFirstConstant,
           UINT*                             pNumConstants) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     GetConstantBuffers<DxbcProgramType::HullShader>(
@@ -1540,6 +1903,9 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumViews,
           ID3D11ShaderResourceView**        ppShaderResourceViews) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     GetShaderResources<DxbcProgramType::HullShader>(
@@ -1552,6 +1918,9 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumSamplers,
           ID3D11SamplerState**              ppSamplers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     GetSamplers<DxbcProgramType::HullShader>(
@@ -1564,6 +1933,9 @@ namespace dxvk {
           ID3D11DomainShader*               pDomainShader,
           ID3D11ClassInstance* const*       ppClassInstances,
           UINT                              NumClassInstances) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     auto shader = static_cast<D3D11DomainShader*>(pDomainShader);
@@ -1584,6 +1956,9 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumBuffers,
           ID3D11Buffer* const*              ppConstantBuffers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     SetConstantBuffers<DxbcProgramType::DomainShader>(
@@ -1598,6 +1973,9 @@ namespace dxvk {
           ID3D11Buffer* const*              ppConstantBuffers,
     const UINT*                             pFirstConstant,
     const UINT*                             pNumConstants) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     SetConstantBuffers1<DxbcProgramType::DomainShader>(
@@ -1611,6 +1989,9 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumViews,
           ID3D11ShaderResourceView* const*  ppShaderResourceViews) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     SetShaderResources<DxbcProgramType::DomainShader>(
@@ -1623,6 +2004,9 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumSamplers,
           ID3D11SamplerState* const*        ppSamplers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     SetSamplers<DxbcProgramType::DomainShader>(
@@ -1635,6 +2019,10 @@ namespace dxvk {
           ID3D11DomainShader**              ppDomainShader,
           ID3D11ClassInstance**             ppClassInstances,
           UINT*                             pNumClassInstances) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (ppDomainShader)
@@ -1650,6 +2038,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumBuffers,
           ID3D11Buffer**                    ppConstantBuffers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetConstantBuffers<DxbcProgramType::DomainShader>(
@@ -1665,6 +2057,10 @@ namespace dxvk {
           ID3D11Buffer**                    ppConstantBuffers,
           UINT*                             pFirstConstant,
           UINT*                             pNumConstants) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetConstantBuffers<DxbcProgramType::DomainShader>(
@@ -1678,6 +2074,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumViews,
           ID3D11ShaderResourceView**        ppShaderResourceViews) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetShaderResources<DxbcProgramType::DomainShader>(
@@ -1690,6 +2090,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumSamplers,
           ID3D11SamplerState**              ppSamplers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetSamplers<DxbcProgramType::DomainShader>(
@@ -1702,6 +2106,10 @@ namespace dxvk {
           ID3D11GeometryShader*             pShader,
           ID3D11ClassInstance* const*       ppClassInstances,
           UINT                              NumClassInstances) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     auto shader = static_cast<D3D11GeometryShader*>(pShader);
@@ -1722,6 +2130,9 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumBuffers,
           ID3D11Buffer* const*              ppConstantBuffers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     SetConstantBuffers<DxbcProgramType::GeometryShader>(
@@ -1736,6 +2147,9 @@ namespace dxvk {
           ID3D11Buffer* const*              ppConstantBuffers,
     const UINT*                             pFirstConstant,
     const UINT*                             pNumConstants) {  
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif  
     D3D10DeviceLock lock = LockContext();
 
     SetConstantBuffers1<DxbcProgramType::GeometryShader>(
@@ -1749,6 +2163,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumViews,
           ID3D11ShaderResourceView* const*  ppShaderResourceViews) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     SetShaderResources<DxbcProgramType::GeometryShader>(
@@ -1761,6 +2179,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumSamplers,
           ID3D11SamplerState* const*        ppSamplers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     SetSamplers<DxbcProgramType::GeometryShader>(
@@ -1773,6 +2195,10 @@ namespace dxvk {
           ID3D11GeometryShader**            ppGeometryShader,
           ID3D11ClassInstance**             ppClassInstances,
           UINT*                             pNumClassInstances) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (ppGeometryShader)
@@ -1788,6 +2214,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumBuffers,
           ID3D11Buffer**                    ppConstantBuffers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetConstantBuffers<DxbcProgramType::GeometryShader>(
@@ -1803,6 +2233,10 @@ namespace dxvk {
           ID3D11Buffer**                    ppConstantBuffers,
           UINT*                             pFirstConstant,
           UINT*                             pNumConstants) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+    
     D3D10DeviceLock lock = LockContext();
 
     GetConstantBuffers<DxbcProgramType::GeometryShader>(
@@ -1816,6 +2250,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumViews,
           ID3D11ShaderResourceView**        ppShaderResourceViews) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetShaderResources<DxbcProgramType::GeometryShader>(
@@ -1828,6 +2266,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumSamplers,
           ID3D11SamplerState**              ppSamplers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetSamplers<DxbcProgramType::GeometryShader>(
@@ -1840,6 +2282,10 @@ namespace dxvk {
           ID3D11PixelShader*                pPixelShader,
           ID3D11ClassInstance* const*       ppClassInstances,
           UINT                              NumClassInstances) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     auto shader = static_cast<D3D11PixelShader*>(pPixelShader);
@@ -1860,6 +2306,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumBuffers,
           ID3D11Buffer* const*              ppConstantBuffers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     SetConstantBuffers<DxbcProgramType::PixelShader>(
@@ -1874,6 +2324,10 @@ namespace dxvk {
           ID3D11Buffer* const*              ppConstantBuffers,
     const UINT*                             pFirstConstant,
     const UINT*                             pNumConstants) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     SetConstantBuffers1<DxbcProgramType::PixelShader>(
@@ -1887,6 +2341,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumViews,
           ID3D11ShaderResourceView* const*  ppShaderResourceViews) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     SetShaderResources<DxbcProgramType::PixelShader>(
@@ -1899,6 +2357,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumSamplers,
           ID3D11SamplerState* const*        ppSamplers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     SetSamplers<DxbcProgramType::PixelShader>(
@@ -1911,6 +2373,10 @@ namespace dxvk {
           ID3D11PixelShader**               ppPixelShader,
           ID3D11ClassInstance**             ppClassInstances,
           UINT*                             pNumClassInstances) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (ppPixelShader)
@@ -1926,6 +2392,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumBuffers,
           ID3D11Buffer**                    ppConstantBuffers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetConstantBuffers<DxbcProgramType::PixelShader>(
@@ -1941,6 +2411,10 @@ namespace dxvk {
           ID3D11Buffer**                    ppConstantBuffers,
           UINT*                             pFirstConstant,
           UINT*                             pNumConstants) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetConstantBuffers<DxbcProgramType::PixelShader>(
@@ -1954,6 +2428,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumViews,
           ID3D11ShaderResourceView**        ppShaderResourceViews) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetShaderResources<DxbcProgramType::PixelShader>(
@@ -1966,6 +2444,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumSamplers,
           ID3D11SamplerState**              ppSamplers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetSamplers<DxbcProgramType::PixelShader>(
@@ -1978,6 +2460,10 @@ namespace dxvk {
           ID3D11ComputeShader*              pComputeShader,
           ID3D11ClassInstance* const*       ppClassInstances,
           UINT                              NumClassInstances) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     auto shader = static_cast<D3D11ComputeShader*>(pComputeShader);
@@ -1998,6 +2484,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumBuffers,
           ID3D11Buffer* const*              ppConstantBuffers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     SetConstantBuffers<DxbcProgramType::ComputeShader>(
@@ -2012,6 +2502,10 @@ namespace dxvk {
           ID3D11Buffer* const*              ppConstantBuffers,
     const UINT*                             pFirstConstant,
     const UINT*                             pNumConstants) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     SetConstantBuffers1<DxbcProgramType::ComputeShader>(
@@ -2025,6 +2519,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumViews,
           ID3D11ShaderResourceView* const*  ppShaderResourceViews) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     SetShaderResources<DxbcProgramType::ComputeShader>(
@@ -2037,6 +2535,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumSamplers,
           ID3D11SamplerState* const*        ppSamplers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     SetSamplers<DxbcProgramType::ComputeShader>(
@@ -2050,6 +2552,10 @@ namespace dxvk {
           UINT                              NumUAVs,
           ID3D11UnorderedAccessView* const* ppUnorderedAccessViews,
     const UINT*                             pUAVInitialCounts) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (TestRtvUavHazards(0, nullptr, NumUAVs, ppUnorderedAccessViews))
@@ -2109,6 +2615,10 @@ namespace dxvk {
           ID3D11ComputeShader**             ppComputeShader,
           ID3D11ClassInstance**             ppClassInstances,
           UINT*                             pNumClassInstances) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (ppComputeShader)
@@ -2124,6 +2634,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumBuffers,
           ID3D11Buffer**                    ppConstantBuffers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetConstantBuffers<DxbcProgramType::ComputeShader>(
@@ -2139,6 +2653,10 @@ namespace dxvk {
           ID3D11Buffer**                    ppConstantBuffers,
           UINT*                             pFirstConstant,
           UINT*                             pNumConstants) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetConstantBuffers<DxbcProgramType::ComputeShader>(
@@ -2152,6 +2670,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumViews,
           ID3D11ShaderResourceView**        ppShaderResourceViews) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetShaderResources<DxbcProgramType::ComputeShader>(
@@ -2164,6 +2686,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumSamplers,
           ID3D11SamplerState**              ppSamplers) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     GetSamplers<DxbcProgramType::ComputeShader>(
@@ -2176,6 +2702,10 @@ namespace dxvk {
           UINT                              StartSlot,
           UINT                              NumUAVs,
           ID3D11UnorderedAccessView**       ppUnorderedAccessViews) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     for (uint32_t i = 0; i < NumUAVs; i++) {
@@ -2191,6 +2721,9 @@ namespace dxvk {
           UINT                              NumViews,
           ID3D11RenderTargetView* const*    ppRenderTargetViews,
           ID3D11DepthStencilView*           pDepthStencilView) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     if constexpr (!IsDeferred)
@@ -2211,6 +2744,10 @@ namespace dxvk {
           UINT                              NumUAVs,
           ID3D11UnorderedAccessView* const* ppUnorderedAccessViews,
     const UINT*                             pUAVInitialCounts) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if constexpr (!IsDeferred)
@@ -2227,6 +2764,10 @@ namespace dxvk {
           ID3D11BlendState*                 pBlendState,
     const FLOAT                             BlendFactor[4],
           UINT                              SampleMask) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     auto blendState = static_cast<D3D11BlendState*>(pBlendState);
@@ -2252,6 +2793,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::OMSetDepthStencilState(
           ID3D11DepthStencilState*          pDepthStencilState,
           UINT                              StencilRef) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     auto depthStencilState = static_cast<D3D11DepthStencilState*>(pDepthStencilState);
@@ -2277,6 +2822,9 @@ namespace dxvk {
           UINT                              NumViews,
           ID3D11RenderTargetView**          ppRenderTargetViews,
           ID3D11DepthStencilView**          ppDepthStencilView) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     OMGetRenderTargetsAndUnorderedAccessViews(
       NumViews, ppRenderTargetViews, ppDepthStencilView,
       NumViews, 0, nullptr);
@@ -2291,6 +2839,9 @@ namespace dxvk {
           UINT                              UAVStartSlot,
           UINT                              NumUAVs,
           ID3D11UnorderedAccessView**       ppUnorderedAccessViews) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     if (ppRenderTargetViews) {
@@ -2319,6 +2870,10 @@ namespace dxvk {
           ID3D11BlendState**                ppBlendState,
           FLOAT                             BlendFactor[4],
           UINT*                             pSampleMask) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (ppBlendState)
@@ -2336,6 +2891,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::OMGetDepthStencilState(
           ID3D11DepthStencilState**         ppDepthStencilState,
           UINT*                             pStencilRef) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (ppDepthStencilState)
@@ -2348,6 +2907,9 @@ namespace dxvk {
 
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::RSSetState(ID3D11RasterizerState* pRasterizerState) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     auto currRasterizerState = m_state.rs.state;
@@ -2379,6 +2941,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::RSSetViewports(
           UINT                              NumViewports,
     const D3D11_VIEWPORT*                   pViewports) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (unlikely(NumViewports > m_state.rs.viewports.size()))
@@ -2409,6 +2975,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::RSSetScissorRects(
           UINT                              NumRects,
     const D3D11_RECT*                       pRects) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     if (unlikely(NumRects > m_state.rs.scissors.size()))
@@ -2443,6 +3013,9 @@ namespace dxvk {
 
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::RSGetState(ID3D11RasterizerState** ppRasterizerState) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     if (ppRasterizerState)
@@ -2454,6 +3027,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::RSGetViewports(
           UINT*                             pNumViewports,
           D3D11_VIEWPORT*                   pViewports) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
     uint32_t numWritten = m_state.rs.numViewports;
 
@@ -2482,6 +3059,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::RSGetScissorRects(
           UINT*                             pNumRects,
           D3D11_RECT*                       pRects) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
     uint32_t numWritten = m_state.rs.numScissors;
 
@@ -2509,6 +3090,10 @@ namespace dxvk {
           UINT                              NumBuffers,
           ID3D11Buffer* const*              ppSOTargets,
     const UINT*                             pOffsets) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     for (uint32_t i = 0; i < NumBuffers; i++) {
@@ -2536,6 +3121,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::SOGetTargets(
           UINT                              NumBuffers,
           ID3D11Buffer**                    ppSOTargets) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     for (uint32_t i = 0; i < NumBuffers; i++) {
@@ -2551,6 +3140,10 @@ namespace dxvk {
           UINT                              NumBuffers,
           ID3D11Buffer**                    ppSOTargets,
           UINT*                             pOffsets) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     for (uint32_t i = 0; i < NumBuffers; i++) {
@@ -2575,6 +3168,9 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::SetPredication(
           ID3D11Predicate*                  pPredicate,
           BOOL                              PredicateValue) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D10DeviceLock lock = LockContext();
 
     auto predicate = D3D11Query::FromPredicate(pPredicate);
@@ -2662,6 +3258,10 @@ namespace dxvk {
     const D3D11_TILED_RESOURCE_COORDINATE*  pSourceRegionCoordinate,
     const D3D11_TILE_REGION_SIZE*           pTileRegionSize,
           UINT                              Flags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (!pDestTiledResource || !pSourceTiledResource)
       return E_INVALIDARG;
 
@@ -2728,7 +3328,13 @@ namespace dxvk {
     EmitCs([
       cBindInfo = std::move(bindInfo),
       cFlags    = flags
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_CopyTileMappings", cCurrentId);
+      #endif
       ctx->updatePageTable(cBindInfo, cFlags);
     });
 
@@ -2740,6 +3346,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D11CommonContext<ContextType>::ResizeTilePool(
           ID3D11Buffer*                     pTilePool,
           UINT64                            NewSizeInBytes) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (NewSizeInBytes % SparseMemoryPageSize)
       return E_INVALIDARG;
 
@@ -2753,7 +3363,13 @@ namespace dxvk {
     EmitCs([
       cAllocator  = buffer->GetSparseAllocator(),
       cPageCount  = NewSizeInBytes / SparseMemoryPageSize
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ResizeTilePool", cCurrentId);
+      #endif
       cAllocator->setCapacity(cPageCount);
     });
 
@@ -2765,6 +3381,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::TiledResourceBarrier(
           ID3D11DeviceChild*                pTiledResourceOrViewAccessBeforeBarrier,
           ID3D11DeviceChild*                pTiledResourceOrViewAccessAfterBarrier) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     DxvkGlobalPipelineBarrier srcBarrier = GetTiledResourceDependency(pTiledResourceOrViewAccessBeforeBarrier);
     DxvkGlobalPipelineBarrier dstBarrier = GetTiledResourceDependency(pTiledResourceOrViewAccessAfterBarrier);
 
@@ -2772,7 +3392,13 @@ namespace dxvk {
       EmitCs([
         cSrcBarrier = srcBarrier,
         cDstBarrier = dstBarrier
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_CopyTileMappings", cCurrentId);
+      #endif
         ctx->emitGraphicsBarrier(
           cSrcBarrier.stages, cSrcBarrier.access,
           cDstBarrier.stages, cDstBarrier.access);
@@ -2793,6 +3419,10 @@ namespace dxvk {
     const UINT*                             pRangeTileOffsets,
     const UINT*                             pRangeTileCounts,
           UINT                              Flags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (!pTiledResource || !NumRegions || !NumRanges)
       return E_INVALIDARG;
 
@@ -2931,7 +3561,13 @@ namespace dxvk {
     EmitCs([
       cBindInfo = std::move(bindInfo),
       cFlags    = flags
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_UpdateTileMappings", cCurrentId);
+      #endif
       ctx->updatePageTable(cBindInfo, cFlags);
     });
 
@@ -2978,6 +3614,10 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::SetMarkerInt(
           LPCWSTR                           pLabel,
           INT                               Data) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     // Not implemented in the backend, ignore
   }
 
@@ -2986,12 +3626,20 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::BeginEventInt(
           LPCWSTR                           pLabel,
           INT                               Data) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     // Not implemented in the backend, ignore
   }
 
 
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::EndEvent() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     // Not implemented in the backend, ignore
   }
 
@@ -2999,6 +3647,10 @@ namespace dxvk {
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::GetHardwareProtectionState(
           BOOL*                             pHwProtectionEnable) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     static bool s_errorShown = false;
 
     if (!std::exchange(s_errorShown, true))
@@ -3012,6 +3664,10 @@ namespace dxvk {
   template<typename ContextType>
   void STDMETHODCALLTYPE D3D11CommonContext<ContextType>::SetHardwareProtectionState(
           BOOL                              HwProtectionEnable) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     static bool s_errorShown = false;
 
     if (!std::exchange(s_errorShown, true))
@@ -3025,6 +3681,11 @@ namespace dxvk {
     const VkImageSubresourceRange*  pSubresources,
           VkImageLayout             OldLayout,
           VkImageLayout             NewLayout) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D10DeviceLock lock = LockContext();
 
     // Get the underlying D3D11 resource
@@ -3041,7 +3702,13 @@ namespace dxvk {
       cSubresources = *pSubresources,
       cOldLayout    = OldLayout,
       cNewLayout    = NewLayout
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId   = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_TransitionSurfaceLayout", cCurrentId);
+      #endif
       ctx->transformImage(
         cImage, cSubresources,
         cOldLayout, cNewLayout);
@@ -3051,12 +3718,18 @@ namespace dxvk {
 
   template<typename ContextType>
   DxvkCsChunkRef D3D11CommonContext<ContextType>::AllocCsChunk() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     return m_parent->AllocCsChunk(m_csFlags);
   }
 
 
   template<typename ContextType>
   DxvkDataSlice D3D11CommonContext<ContextType>::AllocUpdateBufferSlice(size_t Size) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     constexpr size_t UpdateBufferSize = 1 * 1024 * 1024;
     
     if (Size >= UpdateBufferSize) {
@@ -3081,22 +3754,42 @@ namespace dxvk {
   template<typename ContextType>
   DxvkBufferSlice D3D11CommonContext<ContextType>::AllocStagingBuffer(
           VkDeviceSize                      Size) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     return m_staging.alloc(256, Size);
   }
 
 
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::ApplyInputLayout() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     auto inputLayout = m_state.ia.inputLayout.prvRef();
 
     if (likely(inputLayout != nullptr)) {
       EmitCs([
         cInputLayout = std::move(inputLayout)
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId   = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ApplyInputLayout", cCurrentId);
+        #endif
         cInputLayout->BindToContext(ctx);
       });
     } else {
-      EmitCs([] (DxvkContext* ctx) {
+      EmitCs([
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        cCurrentId = currentId
+        #endif
+      ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ApplyInputLayout", cCurrentId);
+        #endif
         ctx->setInputLayout(0, nullptr, 0, nullptr);
       });
     }
@@ -3105,6 +3798,10 @@ namespace dxvk {
 
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::ApplyPrimitiveTopology() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D11_PRIMITIVE_TOPOLOGY topology = m_state.ia.primitiveTopology;
     DxvkInputAssemblyState iaState = { };
 
@@ -3131,7 +3828,16 @@ namespace dxvk {
       iaState = { VK_PRIMITIVE_TOPOLOGY_PATCH_LIST, VK_FALSE, vertexCount };
     }
     
-    EmitCs([iaState] (DxvkContext* ctx) {
+    
+    EmitCs([
+      iaState
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
+    ] (DxvkContext* ctx) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ApplyPrimitiveTopology", cCurrentId);
+    #endif
       ctx->setInputAssemblyState(iaState);
     });
   }
@@ -3139,17 +3845,35 @@ namespace dxvk {
 
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::ApplyBlendState() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (m_state.om.cbState != nullptr) {
       EmitCs([
         cBlendState = m_state.om.cbState,
         cSampleMask = m_state.om.sampleMask
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId  = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+         ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ApplyBlendState", cCurrentId);
+        #endif
+
         cBlendState->BindToContext(ctx, cSampleMask);
       });
     } else {
       EmitCs([
         cSampleMask = m_state.om.sampleMask
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId  = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ApplyBlendState", cCurrentId);
+        #endif
+
         DxvkBlendMode cbState;
         DxvkLogicOpState loState;
         DxvkMultisampleState msState;
@@ -3167,11 +3891,21 @@ namespace dxvk {
 
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::ApplyBlendFactor() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     EmitCs([
       cBlendConstants = DxvkBlendConstants {
         m_state.om.blendFactor[0], m_state.om.blendFactor[1],
         m_state.om.blendFactor[2], m_state.om.blendFactor[3] }
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId     = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ApplyBlendFactor", cCurrentId);
+      #endif
       ctx->setBlendConstants(cBlendConstants);
     });
   }
@@ -3179,14 +3913,33 @@ namespace dxvk {
 
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::ApplyDepthStencilState() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     if (m_state.om.dsState != nullptr) {
       EmitCs([
         cDepthStencilState = m_state.om.dsState
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ApplyDepthStencilState", cCurrentId);
+        #endif
         cDepthStencilState->BindToContext(ctx);
       });
     } else {
-      EmitCs([] (DxvkContext* ctx) {
+      EmitCs([
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        cCurrentId = currentId
+        #endif
+        ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ApplyDepthStencilState", cCurrentId);
+      #endif
+
         DxvkDepthStencilState dsState;
         InitDefaultDepthStencilState(&dsState);
 
@@ -3198,9 +3951,20 @@ namespace dxvk {
   
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::ApplyStencilRef() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     EmitCs([
       cStencilRef = m_state.om.stencilRef
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ApplyStencilRef", cCurrentId);
+      #endif
       ctx->setStencilReference(cStencilRef);
     });
   }
@@ -3208,14 +3972,33 @@ namespace dxvk {
   
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::ApplyRasterizerState() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (m_state.rs.state != nullptr) {
       EmitCs([
         cRasterizerState = m_state.rs.state
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId      = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ApplyRasterizerState", cCurrentId);
+        #endif
+
         cRasterizerState->BindToContext(ctx);
       });
     } else {
-      EmitCs([] (DxvkContext* ctx) {
+      EmitCs([
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        cCurrentId = currentId
+        #endif
+      ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ApplyRasterizerState", cCurrentId);
+        #endif
+
         DxvkRasterizerState rsState;
         InitDefaultRasterizerState(&rsState);
 
@@ -3227,6 +4010,10 @@ namespace dxvk {
 
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::ApplyRasterizerSampleCount() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     DxbcPushConstants pc;
     pc.rasterizerSampleCount = m_state.om.sampleCount;
 
@@ -3241,7 +4028,13 @@ namespace dxvk {
 
     EmitCs([
       cPushConstants = pc
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ApplyRasterizerSampleCount", cCurrentId);
+        #endif
       ctx->pushConstants(0, sizeof(cPushConstants), &cPushConstants);
     });
   }
@@ -3249,6 +4042,10 @@ namespace dxvk {
 
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::ApplyViewportState() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     std::array<VkViewport, D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE> viewports;
     std::array<VkRect2D,   D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE> scissors;
 
@@ -3320,7 +4117,14 @@ namespace dxvk {
       EmitCs([
         cViewport = viewports[0],
         cScissor  = scissors[0]
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ApplyViewportState", cCurrentId);
+        #endif
+
         ctx->setViewports(1,
           &cViewport,
           &cScissor);
@@ -3330,7 +4134,14 @@ namespace dxvk {
         cViewportCount = viewportCount,
         cViewports     = viewports,
         cScissors      = scissors
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId     = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ApplyViewportState", cCurrentId);
+        #endif
+
         ctx->setViewports(
           cViewportCount,
           cViewports.data(),
@@ -3344,6 +4155,10 @@ namespace dxvk {
   template<DxbcProgramType ShaderStage>
   void D3D11CommonContext<ContextType>::BindShader(
     const D3D11CommonShader*    pShaderModule) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (pShaderModule) {
       auto buffer = pShaderModule->GetIcb();
       auto shader = pShaderModule->GetShader();
@@ -3354,7 +4169,13 @@ namespace dxvk {
       EmitCs([
         cBuffer = std::move(buffer),
         cShader = std::move(shader)
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId     = currentId
+        #endif
       ] (DxvkContext* ctx) mutable {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindShader", cCurrentId);
+        #endif
         constexpr VkShaderStageFlagBits stage = GetShaderStage(ShaderStage);
 
         uint32_t slotId = computeConstantBufferBinding(ShaderStage,
@@ -3366,7 +4187,14 @@ namespace dxvk {
           Forwarder::move(cBuffer));
       });
     } else {
-      EmitCs([] (DxvkContext* ctx) {
+      EmitCs([
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        cCurrentId     = currentId
+        #endif
+      ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindShader", cCurrentId);
+        #endif
         constexpr VkShaderStageFlagBits stage = GetShaderStage(ShaderStage);
 
         uint32_t slotId = computeConstantBufferBinding(ShaderStage,
@@ -3381,6 +4209,10 @@ namespace dxvk {
 
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::BindFramebuffer() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     DxvkRenderTargets attachments;
     uint32_t sampleCount = 0;
 
@@ -3406,7 +4238,13 @@ namespace dxvk {
     // Create and bind the framebuffer object to the context
     EmitCs([
       cAttachments = std::move(attachments)
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId   = currentId
+      #endif
     ] (DxvkContext* ctx) mutable {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindFramebuffer", cCurrentId);
+      #endif
       ctx->bindRenderTargets(Forwarder::move(cAttachments), 0u);
     });
 
@@ -3422,10 +4260,21 @@ namespace dxvk {
   void D3D11CommonContext<ContextType>::BindDrawBuffers(
           D3D11Buffer*                     pBufferForArgs,
           D3D11Buffer*                     pBufferForCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     EmitCs([
       cArgBuffer = pBufferForArgs  ? pBufferForArgs->GetBufferSlice()  : DxvkBufferSlice(),
       cCntBuffer = pBufferForCount ? pBufferForCount->GetBufferSlice() : DxvkBufferSlice()
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) mutable {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindDrawBuffers", cCurrentId);
+      #endif
       ctx->bindDrawBuffers(
         Forwarder::move(cArgBuffer),
         Forwarder::move(cCntBuffer));
@@ -3439,12 +4288,22 @@ namespace dxvk {
           D3D11Buffer*                      pBuffer,
           UINT                              Offset,
           UINT                              Stride) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (pBuffer) {
       EmitCs([
         cSlotId       = Slot,
         cBufferSlice  = pBuffer->GetBufferSlice(Offset),
         cStride       = Stride
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) mutable {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_BindVertexBuffer", cCurrentId);
+        #endif
         ctx->bindVertexBuffer(cSlotId,
           Forwarder::move(cBufferSlice),
           cStride);
@@ -3452,7 +4311,13 @@ namespace dxvk {
     } else {
       EmitCs([
         cSlotId       = Slot
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_BindVertexBuffer", cCurrentId);
+        #endif
         ctx->bindVertexBuffer(cSlotId, DxvkBufferSlice(), 0);
       });
     }
@@ -3465,6 +4330,10 @@ namespace dxvk {
           D3D11Buffer*                      pBuffer,
           UINT                              Offset,
           UINT                              Stride) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (pBuffer) {
       VkDeviceSize offset = Offset;
       VkDeviceSize length = pBuffer->GetRemainingSize(Offset);
@@ -3474,7 +4343,13 @@ namespace dxvk {
         cBufferOffset = offset,
         cBufferLength = length,
         cStride       = Stride
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId    = currentId
+        #endif
       ] (DxvkContext* ctx) mutable {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_BindVertexBufferRange", cCurrentId);
+        #endif
         ctx->bindVertexBufferRange(cSlotId,
           cBufferOffset, cBufferLength, cStride);
       });
@@ -3487,6 +4362,11 @@ namespace dxvk {
           D3D11Buffer*                      pBuffer,
           UINT                              Offset,
           DXGI_FORMAT                       Format) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     VkIndexType indexType = Format == DXGI_FORMAT_R16_UINT
       ? VK_INDEX_TYPE_UINT16
       : VK_INDEX_TYPE_UINT32;
@@ -3495,7 +4375,13 @@ namespace dxvk {
       EmitCs([
         cBufferSlice  = pBuffer->GetBufferSlice(Offset),
         cIndexType    = indexType
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId    = currentId
+        #endif
       ] (DxvkContext* ctx) mutable {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_BindIndexBuffer", cCurrentId);
+        #endif
         ctx->bindIndexBuffer(
           Forwarder::move(cBufferSlice),
           cIndexType);
@@ -3503,7 +4389,13 @@ namespace dxvk {
     } else {
       EmitCs([
         cIndexType    = indexType
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId    = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_BindIndexBuffer", cCurrentId);
+        #endif
         ctx->bindIndexBuffer(DxvkBufferSlice(), cIndexType);
       });
     }
@@ -3515,6 +4407,10 @@ namespace dxvk {
           D3D11Buffer*                      pBuffer,
           UINT                              Offset,
           DXGI_FORMAT                       Format) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (pBuffer) {
       VkIndexType indexType = Format == DXGI_FORMAT_R16_UINT
         ? VK_INDEX_TYPE_UINT16
@@ -3527,7 +4423,13 @@ namespace dxvk {
         cBufferOffset = offset,
         cBufferLength = length,
         cIndexType    = indexType
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId    = currentId
+        #endif
       ] (DxvkContext* ctx) mutable {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_BindIndexBufferRange", cCurrentId);
+        #endif
         ctx->bindIndexBufferRange(
           cBufferOffset, cBufferLength,
           cIndexType);
@@ -3541,13 +4443,23 @@ namespace dxvk {
           UINT                              Slot,
           D3D11Buffer*                      pBuffer,
           UINT                              Offset) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (pBuffer) {
       EmitCs([
         cSlotId       = Slot,
         cOffset       = Offset,
         cBufferSlice  = pBuffer->GetBufferSlice(),
         cCounterSlice = pBuffer->GetSOCounter()
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId    = currentId
+        #endif
       ] (DxvkContext* ctx) mutable {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_BindXfbBuffer", cCurrentId);
+        #endif
         if (cCounterSlice.defined() && cOffset != ~0u) {
           ctx->updateBuffer(
             cCounterSlice.buffer(),
@@ -3563,7 +4475,13 @@ namespace dxvk {
     } else {
       EmitCs([
         cSlotId       = Slot
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId    = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_BindXfbBuffer", cCurrentId);
+        #endif
         ctx->bindXfbBuffer(cSlotId,
           DxvkBufferSlice(),
           DxvkBufferSlice());
@@ -3579,11 +4497,21 @@ namespace dxvk {
           D3D11Buffer*                      pBuffer,
           UINT                              Offset,
           UINT                              Length) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (pBuffer) {
       EmitCs([
         cSlotId      = Slot,
         cBufferSlice = pBuffer->GetBufferSlice(16 * Offset, 16 * Length)
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId   = currentId
+        #endif
       ] (DxvkContext* ctx) mutable {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindConstantBuffer", cCurrentId);
+        #endif
         VkShaderStageFlagBits stage = GetShaderStage(ShaderStage);
         ctx->bindResourceBuffer(stage, cSlotId,
           Forwarder::move(cBufferSlice));
@@ -3591,7 +4519,13 @@ namespace dxvk {
     } else {
       EmitCs([
         cSlotId      = Slot
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId   = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindConstantBuffer", cCurrentId);
+        #endif
         VkShaderStageFlagBits stage = GetShaderStage(ShaderStage);
         ctx->bindResourceBuffer(stage, cSlotId, DxvkBufferSlice());
       });
@@ -3605,11 +4539,21 @@ namespace dxvk {
           UINT                              Slot,
           UINT                              Offset,
           UINT                              Length) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     EmitCs([
       cSlotId       = Slot,
       cOffset       = 16 * Offset,
       cLength       = 16 * Length
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId   = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindConstantBufferRange", cCurrentId);
+      #endif
       VkShaderStageFlagBits stage = GetShaderStage(ShaderStage);
       ctx->bindResourceBufferRange(stage, cSlotId, cOffset, cLength);
     });
@@ -3621,11 +4565,21 @@ namespace dxvk {
   void D3D11CommonContext<ContextType>::BindSampler(
           UINT                              Slot,
           D3D11SamplerState*                pSampler) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (pSampler) {
       EmitCs([
         cSlotId   = Slot,
         cSampler  = pSampler->GetDXVKSampler()
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) mutable {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindSampler", cCurrentId);
+        #endif
         VkShaderStageFlagBits stage = GetShaderStage(ShaderStage);
         ctx->bindResourceSampler(stage, cSlotId,
           Forwarder::move(cSampler));
@@ -3633,7 +4587,13 @@ namespace dxvk {
     } else {
       EmitCs([
         cSlotId   = Slot
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindSampler", cCurrentId);
+        #endif
         VkShaderStageFlagBits stage = GetShaderStage(ShaderStage);
         ctx->bindResourceSampler(stage, cSlotId, nullptr);
       });
@@ -3646,12 +4606,22 @@ namespace dxvk {
   void D3D11CommonContext<ContextType>::BindShaderResource(
           UINT                              Slot,
           D3D11ShaderResourceView*          pResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (pResource) {
       if (pResource->GetViewInfo().Dimension != D3D11_RESOURCE_DIMENSION_BUFFER) {
         EmitCs([
           cSlotId = Slot,
           cView   = pResource->GetImageView()
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId  = currentId
+          #endif
         ] (DxvkContext* ctx) mutable {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindShaderResource", cCurrentId);
+          #endif
           VkShaderStageFlagBits stage = GetShaderStage(ShaderStage);
           ctx->bindResourceImageView(stage, cSlotId,
             Forwarder::move(cView));
@@ -3660,7 +4630,13 @@ namespace dxvk {
         EmitCs([
           cSlotId = Slot,
           cView   = pResource->GetBufferView()
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId  = currentId
+          #endif
         ] (DxvkContext* ctx) mutable {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindShaderResource", cCurrentId);
+          #endif
           VkShaderStageFlagBits stage = GetShaderStage(ShaderStage);
           ctx->bindResourceBufferView(stage, cSlotId,
             Forwarder::move(cView));
@@ -3669,7 +4645,13 @@ namespace dxvk {
     } else {
       EmitCs([
         cSlotId = Slot
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId  = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindShaderResource", cCurrentId);
+        #endif
         VkShaderStageFlagBits stage = GetShaderStage(ShaderStage);
         ctx->bindResourceImageView(stage, cSlotId, nullptr);
       });
@@ -3684,6 +4666,10 @@ namespace dxvk {
           D3D11UnorderedAccessView*         pUav,
           UINT                              CtrSlot,
           UINT                              Counter) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (pUav) {
       if (pUav->GetViewInfo().Dimension == D3D11_RESOURCE_DIMENSION_BUFFER) {
         EmitCs([
@@ -3692,7 +4678,13 @@ namespace dxvk {
           cBufferView   = pUav->GetBufferView(),
           cCounterSlice = pUav->GetCounterSlice(),
           cCounterValue = Counter
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId    = currentId
+          #endif
         ] (DxvkContext* ctx) mutable {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindUnorderedAccessView", cCurrentId);
+          #endif
           VkShaderStageFlags stages = ShaderStage == DxbcProgramType::ComputeShader
             ? VK_SHADER_STAGE_COMPUTE_BIT
             : VK_SHADER_STAGE_ALL_GRAPHICS;
@@ -3715,7 +4707,13 @@ namespace dxvk {
           cUavSlotId    = UavSlot,
           cCtrSlotId    = CtrSlot,
           cImageView    = pUav->GetImageView()
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId    = currentId
+          #endif
         ] (DxvkContext* ctx) mutable {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindUnorderedAccessView", cCurrentId);
+          #endif
           VkShaderStageFlags stages = ShaderStage == DxbcProgramType::ComputeShader
             ? VK_SHADER_STAGE_COMPUTE_BIT
             : VK_SHADER_STAGE_ALL_GRAPHICS;
@@ -3729,7 +4727,13 @@ namespace dxvk {
       EmitCs([
         cUavSlotId    = UavSlot,
         cCtrSlotId    = CtrSlot
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId    = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindUnorderedAccessView", cCurrentId);
+        #endif
         VkShaderStageFlags stages = ShaderStage == DxbcProgramType::ComputeShader
           ? VK_SHADER_STAGE_COMPUTE_BIT
           : VK_SHADER_STAGE_ALL_GRAPHICS;
@@ -3772,6 +4776,10 @@ namespace dxvk {
           D3D11Buffer*                      pSrcBuffer,
           VkDeviceSize                      SrcOffset,
           VkDeviceSize                      ByteCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     // Clamp copy region to prevent out-of-bounds access
     VkDeviceSize dstLength = pDstBuffer->Desc()->ByteWidth;
     VkDeviceSize srcLength = pSrcBuffer->Desc()->ByteWidth;
@@ -3785,7 +4793,13 @@ namespace dxvk {
     EmitCs([
       cDstBuffer = pDstBuffer->GetBufferSlice(DstOffset, ByteCount),
       cSrcBuffer = pSrcBuffer->GetBufferSlice(SrcOffset, ByteCount)
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_CopyBuffer", cCurrentId);
+      #endif
       if (cDstBuffer.buffer() != cSrcBuffer.buffer()) {
         ctx->copyBuffer(
           cDstBuffer.buffer(),
@@ -3818,6 +4832,10 @@ namespace dxvk {
     const VkImageSubresourceLayers*         pSrcLayers,
           VkOffset3D                        SrcOffset,
           VkExtent3D                        SrcExtent) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     // Image formats must be size-compatible
     auto dstFormatInfo = lookupFormatInfo(pDstTexture->GetPackedFormat());
     auto srcFormatInfo = lookupFormatInfo(pSrcTexture->GetPackedFormat());
@@ -3888,7 +4906,13 @@ namespace dxvk {
         cDstOffset = DstOffset,
         cSrcOffset = SrcOffset,
         cExtent    = SrcExtent
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_CopyImage", cCurrentId);
+        #endif
         // CopyResource can only copy between different images, and
         // CopySubresourceRegion can only copy data from one single
         // subresource at a time, so this check is safe.
@@ -3951,7 +4975,13 @@ namespace dxvk {
               cSrcCoord   = SrcOffset,
               cSrcExtent  = srcMipExtent,
               cSrcFormat  = pSrcTexture->GetPackedFormat()
+              #ifdef ORBIT_INSTRUMENTATION_BUILD
+              ,cCurrentId = currentId
+              #endif
             ] (DxvkContext* ctx) {
+              #ifdef ORBIT_INSTRUMENTATION_BUILD
+              ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_CopyImage", cCurrentId);
+              #endif
               if (cDstLayers.aspectMask != (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) {
                 ctx->copyBufferToImage(cDstImage, cDstLayers, cDstOffset, cDstExtent,
                   cSrcBuffer, cSrcOffset, cSrcLayout.RowPitch, cSrcLayout.DepthPitch);
@@ -3980,7 +5010,13 @@ namespace dxvk {
               cDstCoord   = DstOffset,
               cDstExtent  = dstMipExtent,
               cDstFormat  = pDstTexture->GetPackedFormat()
+              #ifdef ORBIT_INSTRUMENTATION_BUILD
+              ,cCurrentId = currentId
+              #endif
             ] (DxvkContext* ctx) {
+              #ifdef ORBIT_INSTRUMENTATION_BUILD
+              ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_CopyImage", cCurrentId);
+              #endif
               if (cSrcLayers.aspectMask != (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) {
                 ctx->copyImageToBuffer(cDstBuffer, cDstOffset, cDstLayout.RowPitch,
                   cDstLayout.DepthPitch, cSrcImage, cSrcLayers, cSrcOffset, cSrcExtent);
@@ -4025,7 +5061,13 @@ namespace dxvk {
               cDstOffset = util::computeBlockOffset(DstOffset, dstBlockSize),
               cDstSize   = util::computeBlockCount(dstMipExtent, dstBlockSize),
               cExtent    = util::computeBlockCount(blockCount, planeBlockSize)
+              #ifdef ORBIT_INSTRUMENTATION_BUILD
+              ,cCurrentId = currentId
+              #endif
             ] (DxvkContext* ctx) {
+              #ifdef ORBIT_INSTRUMENTATION_BUILD
+              ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_CopyImage", cCurrentId);
+              #endif
               ctx->copyPackedBufferImage(
                 cDstBuffer, cDstStart, cDstOffset, cDstSize,
                 cSrcBuffer, cSrcStart, cSrcOffset, cSrcSize,
@@ -4059,6 +5101,10 @@ namespace dxvk {
     const D3D11_TILE_REGION_SIZE*           pRegionSize,
           DxvkBufferSlice                   BufferSlice,
           UINT                              Flags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     Rc<DxvkPagedResource> resource = GetPagedResource(pResource);
 
     // Do some validation based on page table properties
@@ -4115,7 +5161,13 @@ namespace dxvk {
         cResource = std::move(resource),
         cTiles    = std::move(tiles),
         cBuffer   = std::move(BufferSlice)
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_CopyTiledResourceData", cCurrentId);
+        #endif
         ctx->copySparsePagesFromBuffer(
           cResource,
           cTiles.size(),
@@ -4128,7 +5180,13 @@ namespace dxvk {
         cResource = std::move(resource),
         cTiles    = std::move(tiles),
         cBuffer   = std::move(BufferSlice)
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_CopyTiledResourceData", cCurrentId);
+        #endif
         ctx->copySparsePagesToBuffer(
           cBuffer.buffer(),
           cBuffer.offset(),
@@ -4143,6 +5201,10 @@ namespace dxvk {
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::DiscardBuffer(
           ID3D11Resource*                   pResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     auto buffer = static_cast<D3D11Buffer*>(pResource);
 
     if (buffer->GetMapMode() != D3D11_COMMON_BUFFER_MAP_MODE_NONE) {
@@ -4158,6 +5220,10 @@ namespace dxvk {
   void D3D11CommonContext<ContextType>::DiscardTexture(
           ID3D11Resource*                   pResource,
           UINT                              Subresource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     auto texture = GetCommonTexture(pResource);
 
     if (texture->GetMapMode() != D3D11_COMMON_TEXTURE_MAP_MODE_NONE) {
@@ -4304,9 +5370,19 @@ namespace dxvk {
 
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::ResetCommandListState() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     EmitCs([
       cUsedBindings = GetMaxUsedBindings()
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_ResetCommandListState", cCurrentId);
+      #endif
       // Reset render targets
       ctx->bindRenderTargets(DxvkRenderTargets(), 0u);
 
@@ -5027,6 +6103,11 @@ namespace dxvk {
           UINT                              Offset,
           UINT                              Length,
     const void*                             pSrcData) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     DxvkBufferSlice bufferSlice = pDstBuffer->GetBufferSlice(Offset, Length);
 
     if (Length <= 1024 && !(Offset & 0x3) && !(Length & 0x3)) {
@@ -5036,9 +6117,15 @@ namespace dxvk {
       std::memcpy(dataSlice.ptr(), pSrcData, Length);
 
       EmitCs([
-        cDataBuffer   = std::move(dataSlice),
-        cBufferSlice  = std::move(bufferSlice)
-      ] (DxvkContext* ctx) {
+        cDataBuffer  = std::move(dataSlice),
+        cBufferSlice = std::move(bufferSlice)
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId  = currentId
+        #endif
+      ](DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_UpdateBuffer", cCurrentId);
+        #endif
         ctx->updateBuffer(
           cBufferSlice.buffer(),
           cBufferSlice.offset(),
@@ -5054,7 +6141,13 @@ namespace dxvk {
       EmitCs([
         cStagingSlice = std::move(stagingSlice),
         cBufferSlice  = std::move(bufferSlice)
-      ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId   = currentId
+        #endif
+      ](DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_UpdateBuffer", cCurrentId);
+        #endif
         ctx->copyBuffer(
           cBufferSlice.buffer(),
           cBufferSlice.offset(),
@@ -5077,6 +6170,10 @@ namespace dxvk {
     const void*                             pSrcData,
           UINT                              SrcRowPitch,
           UINT                              SrcDepthPitch) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (DstSubresource >= pDstTexture->CountSubresources())
       return;
 
@@ -5128,6 +6225,10 @@ namespace dxvk {
           VkOffset3D                        DstOffset,
           VkExtent3D                        DstExtent,
           DxvkBufferSlice                   StagingBuffer) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     bool dstIsImage = pDstTexture->GetMapMode() != D3D11_COMMON_TEXTURE_MAP_MODE_STAGING;
 
     uint32_t dstSubresource = D3D11CalcSubresource(pDstSubresource->mipLevel,
@@ -5141,7 +6242,13 @@ namespace dxvk {
         cDstExtent        = DstExtent,
         cStagingSlice     = std::move(StagingBuffer),
         cPackedFormat     = pDstTexture->GetPackedFormat()
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId   = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_UpdateImage", cCurrentId);
+        #endif
         if (cDstLayers.aspectMask != (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) {
           ctx->copyBufferToImage(cDstImage,
             cDstLayers, cDstOffset, cDstExtent,
@@ -5201,7 +6308,13 @@ namespace dxvk {
           cSrcBuffer      = StagingBuffer.buffer(),
           cSrcStart       = StagingBuffer.offset() + srcPlaneOffset,
           cPixelSize      = elementSize
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId   = currentId
+          #endif
         ] (DxvkContext* ctx) {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_UpdateImage", cCurrentId);
+          #endif
           ctx->copyPackedBufferImage(
             cDstBuffer, cDstStart, cDstOffset, cDstSize,
             cSrcBuffer, cSrcStart, VkOffset3D(), cDstExtent,
@@ -5226,6 +6339,9 @@ namespace dxvk {
           UINT                              SrcRowPitch,
           UINT                              SrcDepthPitch,
           UINT                              CopyFlags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     auto context = static_cast<ContextType*>(this);
     D3D10DeviceLock lock = context->LockContext();
 
@@ -5284,7 +6400,11 @@ namespace dxvk {
   bool D3D11CommonContext<ContextType>::ValidateRenderTargets(
           UINT                              NumViews,
           ID3D11RenderTargetView* const*    ppRenderTargetViews,
-          ID3D11DepthStencilView*           pDepthStencilView) {
+      ID3D11DepthStencilView* pDepthStencilView) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     Rc<DxvkImageView> refView;
 
     VkExtent3D dsvExtent = { 0u, 0u, 0u };
@@ -5345,6 +6465,9 @@ namespace dxvk {
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::InitDefaultPrimitiveTopology(
           DxvkInputAssemblyState*           pIaState) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     pIaState->primitiveTopology = VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
     pIaState->primitiveRestart  = VK_FALSE;
     pIaState->patchVertexCount  = 0;
@@ -5354,6 +6477,10 @@ namespace dxvk {
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::InitDefaultRasterizerState(
           DxvkRasterizerState*              pRsState) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     pRsState->polygonMode     = VK_POLYGON_MODE_FILL;
     pRsState->cullMode        = VK_CULL_MODE_BACK_BIT;
     pRsState->frontFace       = VK_FRONT_FACE_CLOCKWISE;
@@ -5368,6 +6495,10 @@ namespace dxvk {
   template<typename ContextType>
   void D3D11CommonContext<ContextType>::InitDefaultDepthStencilState(
           DxvkDepthStencilState*            pDsState) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     VkStencilOpState stencilOp;
     stencilOp.failOp            = VK_STENCIL_OP_KEEP;
     stencilOp.passOp            = VK_STENCIL_OP_KEEP;
@@ -5392,6 +6523,10 @@ namespace dxvk {
           DxvkLogicOpState*                 pLoState,
           DxvkMultisampleState*             pMsState,
           UINT                              SampleMask) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     pCbState->enableBlending    = VK_FALSE;
     pCbState->colorSrcFactor    = VK_BLEND_FACTOR_ONE;
     pCbState->colorDstFactor    = VK_BLEND_FACTOR_ZERO;

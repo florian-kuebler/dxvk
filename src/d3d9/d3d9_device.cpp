@@ -25,6 +25,10 @@
 
 #include "d3d9_initializer.h"
 
+#ifdef ORBIT_INSTRUMENTATION_BUILD
+#include "OrbitApiInterface/OrbitDXVK.h"
+#endif
+
 #include <algorithm>
 #include <cfloat>
 #ifdef MSC_VER
@@ -56,6 +60,10 @@ namespace dxvk {
     , m_csThread        ( dxvkDevice, dxvkDevice->createContext(DxvkContextType::Primary) )
     , m_csChunk         ( AllocCsChunk() )
     , m_d3d9Interop     ( this ) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     // If we can SWVP, then we use an extended constant set
     // as SWVP has many more slots available than HWVP.
     bool canSWVP = CanSWVP();
@@ -72,7 +80,13 @@ namespace dxvk {
 
     EmitCs([
       cDevice = m_dxvkDevice
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_D3D9DeviceEx", cCurrentId);
+      #endif
       ctx->beginRecording(cDevice->createCommandList());
 
       DxvkLogicOpState loState;
@@ -177,6 +191,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::QueryInterface(REFIID riid, void** ppvObject) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (ppvObject == nullptr)
       return E_POINTER;
 
@@ -208,12 +226,20 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::TestCooperativeLevel() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     // Equivelant of D3D11/DXGI present tests. We can always present.
     return D3D_OK;
   }
 
 
   UINT    STDMETHODCALLTYPE D3D9DeviceEx::GetAvailableTextureMem() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     // This is not meant to be accurate.
     // The values are also wildly incorrect in d3d9... But some games rely
     // on this inaccurate value...
@@ -229,11 +255,19 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::EvictManagedResources() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return D3D_OK;
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetDirect3D(IDirect3D9** ppD3D9) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (ppD3D9 == nullptr)
       return D3DERR_INVALIDCALL;
 
@@ -243,11 +277,19 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetDeviceCaps(D3DCAPS9* pCaps) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return m_adapter->GetDeviceCaps(m_deviceType, pCaps);
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetDisplayMode(UINT iSwapChain, D3DDISPLAYMODE* pMode) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (unlikely(iSwapChain != 0))
       return D3DERR_INVALIDCALL;
 
@@ -256,6 +298,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetCreationParameters(D3DDEVICE_CREATION_PARAMETERS *pParameters) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (pParameters == nullptr)
       return D3DERR_INVALIDCALL;
 
@@ -272,6 +318,10 @@ namespace dxvk {
           UINT               XHotSpot,
           UINT               YHotSpot,
           IDirect3DSurface9* pCursorBitmap) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(pCursorBitmap == nullptr))
@@ -322,6 +372,9 @@ namespace dxvk {
 
 
   void    STDMETHODCALLTYPE D3D9DeviceEx::SetCursorPosition(int X, int Y, DWORD Flags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D9DeviceLock lock = LockDevice();
 
     // I was not able to find an instance
@@ -337,6 +390,9 @@ namespace dxvk {
 
 
   BOOL    STDMETHODCALLTYPE D3D9DeviceEx::ShowCursor(BOOL bShow) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D9DeviceLock lock = LockDevice();
 
     return m_cursor.ShowCursor(bShow);
@@ -346,11 +402,19 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::CreateAdditionalSwapChain(
           D3DPRESENT_PARAMETERS* pPresentationParameters,
           IDirect3DSwapChain9**  ppSwapChain) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return CreateAdditionalSwapChainEx(pPresentationParameters, nullptr, ppSwapChain);
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetSwapChain(UINT iSwapChain, IDirect3DSwapChain9** pSwapChain) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     InitReturnPtr(pSwapChain);
@@ -370,6 +434,10 @@ namespace dxvk {
 
 
   UINT    STDMETHODCALLTYPE D3D9DeviceEx::GetNumberOfSwapChains() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     // This only counts the implicit swapchain...
 
     return 1;
@@ -377,6 +445,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::Reset(D3DPRESENT_PARAMETERS* pPresentationParameters) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     HRESULT hr = ResetSwapChain(pPresentationParameters, nullptr);
@@ -399,6 +471,10 @@ namespace dxvk {
     const RECT*    pDestRect,
           HWND     hDestWindowOverride,
     const RGNDATA* pDirtyRegion) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return PresentEx(
       pSourceRect,
       pDestRect,
@@ -407,12 +483,15 @@ namespace dxvk {
       0);
   }
 
-
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetBackBuffer(
           UINT                iSwapChain,
           UINT                iBackBuffer,
           D3DBACKBUFFER_TYPE  Type,
           IDirect3DSurface9** ppBackBuffer) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     InitReturnPtr(ppBackBuffer);
 
     if (unlikely(iSwapChain != 0))
@@ -423,6 +502,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetRasterStatus(UINT iSwapChain, D3DRASTER_STATUS* pRasterStatus) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (unlikely(iSwapChain != 0))
       return D3DERR_INVALIDCALL;
 
@@ -431,6 +514,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetDialogBoxMode(BOOL bEnableDialogs) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return m_implicitSwapchain->SetDialogBoxMode(bEnableDialogs);
   }
 
@@ -439,6 +526,10 @@ namespace dxvk {
           UINT          iSwapChain,
           DWORD         Flags,
     const D3DGAMMARAMP* pRamp) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (unlikely(iSwapChain != 0))
       return;
 
@@ -447,6 +538,10 @@ namespace dxvk {
 
 
   void    STDMETHODCALLTYPE D3D9DeviceEx::GetGammaRamp(UINT iSwapChain, D3DGAMMARAMP* pRamp) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (unlikely(iSwapChain != 0))
       return;
 
@@ -463,6 +558,10 @@ namespace dxvk {
           D3DPOOL             Pool,
           IDirect3DTexture9** ppTexture,
           HANDLE*             pSharedHandle) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     InitReturnPtr(ppTexture);
 
     if (unlikely(ppTexture == nullptr))
@@ -527,6 +626,9 @@ namespace dxvk {
           D3DPOOL                   Pool,
           IDirect3DVolumeTexture9** ppVolumeTexture,
           HANDLE*                   pSharedHandle) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     InitReturnPtr(ppVolumeTexture);
 
     if (unlikely(ppVolumeTexture == nullptr))
@@ -581,6 +683,9 @@ namespace dxvk {
           D3DPOOL                 Pool,
           IDirect3DCubeTexture9** ppCubeTexture,
           HANDLE*                 pSharedHandle) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     InitReturnPtr(ppCubeTexture);
 
     if (unlikely(ppCubeTexture == nullptr))
@@ -634,6 +739,10 @@ namespace dxvk {
           D3DPOOL                  Pool,
           IDirect3DVertexBuffer9** ppVertexBuffer,
           HANDLE*                  pSharedHandle) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     InitReturnPtr(ppVertexBuffer);
 
     if (unlikely(ppVertexBuffer == nullptr))
@@ -673,6 +782,10 @@ namespace dxvk {
           D3DPOOL                 Pool,
           IDirect3DIndexBuffer9** ppIndexBuffer,
           HANDLE*                 pSharedHandle) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     InitReturnPtr(ppIndexBuffer);
 
     if (unlikely(ppIndexBuffer == nullptr))
@@ -713,6 +826,10 @@ namespace dxvk {
           BOOL                Lockable,
           IDirect3DSurface9** ppSurface,
           HANDLE*             pSharedHandle) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return CreateRenderTargetEx(
       Width,
       Height,
@@ -735,6 +852,10 @@ namespace dxvk {
           BOOL                Discard,
           IDirect3DSurface9** ppSurface,
           HANDLE*             pSharedHandle) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return CreateDepthStencilSurfaceEx(
       Width,
       Height,
@@ -753,6 +874,10 @@ namespace dxvk {
     const RECT*              pSourceRect,
           IDirect3DSurface9* pDestinationSurface,
     const POINT*             pDestPoint) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     D3D9Surface* src = static_cast<D3D9Surface*>(pSourceSurface);
@@ -829,6 +954,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::UpdateTexture(
           IDirect3DBaseTexture9* pSourceTexture,
           IDirect3DBaseTexture9* pDestinationTexture) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (!pDestinationTexture || !pSourceTexture)
@@ -906,6 +1035,11 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetRenderTargetData(
           IDirect3DSurface9* pRenderTarget,
           IDirect3DSurface9* pDestSurface) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     D3D9Surface* src = static_cast<D3D9Surface*>(pRenderTarget);
@@ -949,7 +1083,13 @@ namespace dxvk {
       cImage        = srcImage,
       cSubresources = srcSubresourceLayers,
       cLevelExtent  = srcTexExtent
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_GetRenderTargetData", cCurrentId);
+      #endif
       ctx->copyImageToBuffer(cBufferSlice.buffer(), cBufferSlice.offset(), 4, 0,
         cImage, cSubresources, VkOffset3D { 0, 0, 0 },
         cLevelExtent);
@@ -963,6 +1103,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetFrontBufferData(UINT iSwapChain, IDirect3DSurface9* pDestSurface) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (unlikely(iSwapChain != 0))
       return D3DERR_INVALIDCALL;
 
@@ -976,6 +1120,11 @@ namespace dxvk {
           IDirect3DSurface9*   pDestSurface,
     const RECT*                pDestRect,
           D3DTEXTUREFILTERTYPE Filter) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     D3D9Surface* dst = static_cast<D3D9Surface*>(pDestSurface);
@@ -1111,7 +1260,13 @@ namespace dxvk {
         cDstImage = resolveDst,
         cSrcImage = srcImage,
         cRegion   = region
-      ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
+      ] (DxvkContext* ctx) { 
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_StretchRect", cCurrentId);
+        #endif
         if (cRegion.srcSubresource.aspectMask != (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) {
           ctx->resolveImage(
             cDstImage, cSrcImage, cRegion,
@@ -1138,7 +1293,13 @@ namespace dxvk {
           cDstOffset = blitInfo.dstOffsets[0],
           cSrcOffset = blitInfo.srcOffsets[0],
           cExtent    = srcCopyExtent
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId = currentId
+          #endif
         ] (DxvkContext* ctx) {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_StretchRect", cCurrentId);
+          #endif
           ctx->copyImage(
             cDstImage, cDstLayers, cDstOffset,
             cSrcImage, cSrcLayers, cSrcOffset,
@@ -1161,7 +1322,13 @@ namespace dxvk {
         cSrcMap   = srcTextureInfo->GetMapping().Swizzle,
         cBlitInfo = blitInfo,
         cFilter   = stretch ? DecodeFilter(Filter) : VK_FILTER_NEAREST
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_StretchRect", cCurrentId);
+        #endif
         ctx->blitImage(
           cDstImage,
           cDstMap,
@@ -1185,6 +1352,11 @@ namespace dxvk {
           IDirect3DSurface9* pSurface,
     const RECT*              pRect,
           D3DCOLOR           Color) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     D3D9Surface* dst = static_cast<D3D9Surface*>(pSurface);
@@ -1221,7 +1393,13 @@ namespace dxvk {
       EmitCs([
         cImageView  = rtView,
         cClearValue = clearValue
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId  = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ColorFill", cCurrentId);
+        #endif
         ctx->clearRenderTarget(
           cImageView,
           VK_IMAGE_ASPECT_COLOR_BIT,
@@ -1241,7 +1419,13 @@ namespace dxvk {
         cOffset     = offset,
         cExtent     = extent,
         cClearValue = clearValue
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId  = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ColorFill", cCurrentId);
+        #endif
         ctx->clearImageView(
           cImageView,
           cOffset, cExtent,
@@ -1266,6 +1450,10 @@ namespace dxvk {
     D3DPOOL Pool,
     IDirect3DSurface9** ppSurface,
     HANDLE* pSharedHandle) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return CreateOffscreenPlainSurfaceEx(
       Width,     Height,
       Format,    Pool,
@@ -1277,6 +1465,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetRenderTarget(
           DWORD              RenderTargetIndex,
           IDirect3DSurface9* pRenderTarget) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(RenderTargetIndex >= caps::MaxSimultaneousRenderTargets
@@ -1369,6 +1561,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetRenderTarget(
           DWORD               RenderTargetIndex,
           IDirect3DSurface9** ppRenderTarget) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     InitReturnPtr(ppRenderTarget);
@@ -1386,6 +1582,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetDepthStencilSurface(IDirect3DSurface9* pNewZStencil) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     D3D9Surface* ds = static_cast<D3D9Surface*>(pNewZStencil);
@@ -1417,6 +1617,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetDepthStencilSurface(IDirect3DSurface9** ppZStencilSurface) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     InitReturnPtr(ppZStencilSurface);
@@ -1436,6 +1640,10 @@ namespace dxvk {
   // Some games don't even call them.
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::BeginScene() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(m_flags.test(D3D9DeviceFlag::InScene)))
@@ -1448,6 +1656,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::EndScene() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(!m_flags.test(D3D9DeviceFlag::InScene)))
@@ -1468,6 +1680,11 @@ namespace dxvk {
           D3DCOLOR Color,
           float    Z,
           DWORD    Stencil) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     if (unlikely(!Count && pRects))
       return D3D_OK;
 
@@ -1527,6 +1744,11 @@ namespace dxvk {
       VkImageAspectFlags       aspectMask,
       VkClearValue             clearValue) {
       
+     #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
       VkExtent3D imageExtent = imageView->mipLevelExtent(0);
       extent.width = std::min(imageExtent.width, extent.width);
       extent.height = std::min(imageExtent.height, extent.height);
@@ -1544,7 +1766,13 @@ namespace dxvk {
           cClearValue = clearValue,
           cAspectMask = aspectMask,
           cImageView  = imageView
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId = currentId
+          #endif
         ] (DxvkContext* ctx) {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_Clear", cCurrentId);
+          #endif
           ctx->clearRenderTarget(
             cImageView,
             cAspectMask,
@@ -1558,7 +1786,13 @@ namespace dxvk {
           cImageView  = imageView,
           cOffset     = offset,
           cExtent     = extent
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId = currentId
+          #endif
         ] (DxvkContext* ctx) {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_Clear", cCurrentId);
+          #endif
           ctx->clearImageView(
             cImageView,
             cOffset, cExtent,
@@ -1627,11 +1861,19 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetTransform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* pMatrix) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return SetStateTransform(GetTransformIndex(State), pMatrix);
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetTransform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* pMatrix) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(pMatrix == nullptr))
@@ -1644,6 +1886,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::MultiplyTransform(D3DTRANSFORMSTATETYPE TransformState, const D3DMATRIX* pMatrix) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     const uint32_t idx = GetTransformIndex(TransformState);
@@ -1682,6 +1928,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetViewport(D3DVIEWPORT9* pViewport) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (pViewport == nullptr)
@@ -1694,6 +1944,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetMaterial(const D3DMATERIAL9* pMaterial) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(pMaterial == nullptr))
@@ -1710,6 +1964,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetMaterial(D3DMATERIAL9* pMaterial) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(pMaterial == nullptr))
@@ -1722,6 +1980,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetLight(DWORD Index, const D3DLIGHT9* pLight) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(pLight == nullptr))
@@ -1745,6 +2007,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetLight(DWORD Index, D3DLIGHT9* pLight) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(pLight == nullptr))
@@ -1760,6 +2026,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::LightEnable(DWORD Index, BOOL Enable) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(ShouldRecord())) {
@@ -1796,6 +2066,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetLightEnable(DWORD Index, BOOL* pEnable) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(pEnable == nullptr))
@@ -1811,6 +2085,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetClipPlane(DWORD Index, const float* pPlane) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(Index >= caps::MaxClipPlanes || !pPlane))
@@ -1837,6 +2115,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetClipPlane(DWORD Index, float* pPlane) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(Index >= caps::MaxClipPlanes || !pPlane))
@@ -1850,6 +2132,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     // D3D9 only allows reading for values 0 and 7-255 so we don't need to do anything but return OK
@@ -2184,6 +2470,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetRenderState(D3DRENDERSTATETYPE State, DWORD* pValue) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(pValue == nullptr))
@@ -2205,6 +2495,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::CreateStateBlock(
           D3DSTATEBLOCKTYPE      Type,
           IDirect3DStateBlock9** ppSB) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     InitReturnPtr(ppSB);
@@ -2225,6 +2519,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::BeginStateBlock() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(m_recorder != nullptr))
@@ -2237,6 +2535,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::EndStateBlock(IDirect3DStateBlock9** ppSB) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     InitReturnPtr(ppSB);
@@ -2252,18 +2554,30 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetClipStatus(const D3DCLIPSTATUS9* pClipStatus) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     Logger::warn("D3D9DeviceEx::SetClipStatus: Stub");
     return D3D_OK;
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetClipStatus(D3DCLIPSTATUS9* pClipStatus) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     Logger::warn("D3D9DeviceEx::GetClipStatus: Stub");
     return D3D_OK;
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetTexture(DWORD Stage, IDirect3DBaseTexture9** ppTexture) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (ppTexture == nullptr)
@@ -2283,6 +2597,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetTexture(DWORD Stage, IDirect3DBaseTexture9* pTexture) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (unlikely(InvalidSampler(Stage)))
       return D3D_OK;
 
@@ -2296,6 +2614,10 @@ namespace dxvk {
           DWORD                    Stage,
           D3DTEXTURESTAGESTATETYPE Type,
           DWORD*                   pValue) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     auto dxvkType = RemapTextureStageStateType(Type);
 
     if (unlikely(pValue == nullptr))
@@ -2318,6 +2640,10 @@ namespace dxvk {
           DWORD                    Stage,
           D3DTEXTURESTAGESTATETYPE Type,
           DWORD                    Value) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return SetStateTextureStageState(Stage, RemapTextureStageStateType(Type), Value);
   }
 
@@ -2326,6 +2652,10 @@ namespace dxvk {
           DWORD               Sampler,
           D3DSAMPLERSTATETYPE Type,
           DWORD*              pValue) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(pValue == nullptr))
@@ -2348,6 +2678,9 @@ namespace dxvk {
           DWORD               Sampler,
           D3DSAMPLERSTATETYPE Type,
           DWORD               Value) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     if (unlikely(InvalidSampler(Sampler)))
       return D3D_OK;
 
@@ -2358,6 +2691,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::ValidateDevice(DWORD* pNumPasses) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (pNumPasses != nullptr)
       *pNumPasses = 1;
 
@@ -2366,30 +2703,50 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetPaletteEntries(UINT PaletteNumber, const PALETTEENTRY* pEntries) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     // This succeeds even though we don't advertise support.
     return D3D_OK;
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetPaletteEntries(UINT PaletteNumber, PALETTEENTRY* pEntries) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     // Don't advertise support for this...
     return D3DERR_INVALIDCALL;
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetCurrentTexturePalette(UINT PaletteNumber) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     // This succeeds even though we don't advertise support.
     return D3D_OK;
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetCurrentTexturePalette(UINT *PaletteNumber) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     // Don't advertise support for this...
     return D3DERR_INVALIDCALL;
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetScissorRect(const RECT* pRect) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(pRect == nullptr))
@@ -2410,6 +2767,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetScissorRect(RECT* pRect) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(pRect == nullptr))
@@ -2422,6 +2783,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetSoftwareVertexProcessing(BOOL bSoftware) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     auto lock = LockDevice();
 
     if (bSoftware && !CanSWVP())
@@ -2434,6 +2799,10 @@ namespace dxvk {
 
 
   BOOL    STDMETHODCALLTYPE D3D9DeviceEx::GetSoftwareVertexProcessing() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     auto lock = LockDevice();
 
     return m_isSWVP;
@@ -2441,11 +2810,19 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetNPatchMode(float nSegments) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return D3D_OK;
   }
 
 
   float   STDMETHODCALLTYPE D3D9DeviceEx::GetNPatchMode() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return 0.0f;
   }
 
@@ -2454,6 +2831,11 @@ namespace dxvk {
           D3DPRIMITIVETYPE PrimitiveType,
           UINT             StartVertex,
           UINT             PrimitiveCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(m_state.vertexDecl == nullptr))
@@ -2469,7 +2851,13 @@ namespace dxvk {
       cPrimCount   = PrimitiveCount,
       cStartVertex = StartVertex,
       cInstanceCount = GetInstanceCount()
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId   = currentId
+      #endif
     ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_DrawPrimitive", cCurrentId);
+      #endif
       auto drawInfo = GenerateDrawInfo(cPrimType, cPrimCount, cInstanceCount);
 
       ApplyPrimitiveType(ctx, cPrimType);
@@ -2490,6 +2878,11 @@ namespace dxvk {
           UINT             NumVertices,
           UINT             StartIndex,
           UINT             PrimitiveCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(m_state.vertexDecl == nullptr))
@@ -2506,7 +2899,13 @@ namespace dxvk {
       cStartIndex      = StartIndex,
       cBaseVertexIndex = BaseVertexIndex,
       cInstanceCount   = GetInstanceCount()
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId      = currentId
+      #endif
     ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_DrawIndexedPrimitive", cCurrentId);
+      #endif
       auto drawInfo = GenerateDrawInfo(cPrimType, cPrimCount, cInstanceCount);
 
       ApplyPrimitiveType(ctx, cPrimType);
@@ -2526,6 +2925,11 @@ namespace dxvk {
           UINT             PrimitiveCount,
     const void*            pVertexStreamZeroData,
           UINT             VertexStreamZeroStride) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(m_state.vertexDecl == nullptr))
@@ -2550,7 +2954,13 @@ namespace dxvk {
       cPrimCount    = PrimitiveCount,
       cInstanceCount = GetInstanceCount(),
       cStride       = VertexStreamZeroStride
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId    = currentId
+      #endif
     ](DxvkContext* ctx) mutable {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_DrawPrimitiveUP", cCurrentId);
+      #endif
       auto drawInfo = GenerateDrawInfo(cPrimType, cPrimCount, cInstanceCount);
 
       ApplyPrimitiveType(ctx, cPrimType);
@@ -2579,6 +2989,11 @@ namespace dxvk {
           D3DFORMAT        IndexDataFormat,
     const void*            pVertexStreamZeroData,
           UINT             VertexStreamZeroStride) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(m_state.vertexDecl == nullptr))
@@ -2613,7 +3028,13 @@ namespace dxvk {
       cInstanceCount = GetInstanceCount(),
       cIndexType    = DecodeIndexType(
                         static_cast<D3D9Format>(IndexDataFormat))
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId    = currentId
+      #endif
     ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_DrawIndexedPrimitiveUP", cCurrentId);
+      #endif
       auto drawInfo = GenerateDrawInfo(cPrimType, cPrimCount, cInstanceCount);
 
       ApplyPrimitiveType(ctx, cPrimType);
@@ -2645,6 +3066,11 @@ namespace dxvk {
           IDirect3DVertexBuffer9*      pDestBuffer,
           IDirect3DVertexDeclaration9* pVertexDecl,
           DWORD                        Flags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(pDestBuffer == nullptr))
@@ -2701,7 +3127,13 @@ namespace dxvk {
       cInstanceCount = GetInstanceCount(),
       cBufferSlice   = slice,
       cIndexed       = m_state.indices != nullptr
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId    = currentId
+      #endif
     ](DxvkContext* ctx) mutable {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ProcessVertices", cCurrentId);
+      #endif
       Rc<DxvkShader> shader = m_swvpEmulator.GetShaderModule(this, cDecl);
 
       auto drawInfo = GenerateDrawInfo(D3DPT_POINTLIST, cVertexCount, cInstanceCount);
@@ -2744,7 +3176,13 @@ namespace dxvk {
         cDstBuffer = dst->GetBuffer<D3D9_COMMON_BUFFER_TYPE_MAPPING>(),
         cOffset    = offset,
         cCopySize  = copySize
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId    = currentId
+        #endif
       ](DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ProcessVertices", cCurrentId);
+        #endif
         ctx->copyBuffer(cDstBuffer, cOffset, cSrcBuffer, cOffset, cCopySize);
       });
     }
@@ -2759,6 +3197,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::CreateVertexDeclaration(
     const D3DVERTEXELEMENT9*            pVertexElements,
           IDirect3DVertexDeclaration9** ppDecl) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     InitReturnPtr(ppDecl);
 
     if (unlikely(ppDecl == nullptr || pVertexElements == nullptr))
@@ -2783,6 +3225,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetVertexDeclaration(IDirect3DVertexDeclaration9* pDecl) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     D3D9VertexDecl* decl = static_cast<D3D9VertexDecl*>(pDecl);
@@ -2810,6 +3256,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetVertexDeclaration(IDirect3DVertexDeclaration9** ppDecl) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     InitReturnPtr(ppDecl);
@@ -2827,6 +3277,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetFVF(DWORD FVF) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (FVF == 0)
@@ -2848,6 +3302,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetFVF(DWORD* pFVF) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (pFVF == nullptr)
@@ -2864,6 +3322,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::CreateVertexShader(
     const DWORD*                   pFunction,
           IDirect3DVertexShader9** ppShader) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     // CreateVertexShader does not init the
     // return ptr unlike CreatePixelShader
 
@@ -2894,6 +3356,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetVertexShader(IDirect3DVertexShader9* pShader) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     D3D9VertexShader* shader = static_cast<D3D9VertexShader*>(pShader);
@@ -2939,6 +3405,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetVertexShader(IDirect3DVertexShader9** ppShader) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     InitReturnPtr(ppShader);
@@ -2956,6 +3426,10 @@ namespace dxvk {
           UINT   StartRegister,
     const float* pConstantData,
           UINT   Vector4fCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     return SetShaderConstants<
@@ -2971,6 +3445,10 @@ namespace dxvk {
           UINT   StartRegister,
           float* pConstantData,
           UINT   Vector4fCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     return GetShaderConstants<
@@ -2986,6 +3464,10 @@ namespace dxvk {
           UINT StartRegister,
     const int* pConstantData,
           UINT Vector4iCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     return SetShaderConstants<
@@ -3001,6 +3483,10 @@ namespace dxvk {
           UINT StartRegister,
           int* pConstantData,
           UINT Vector4iCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     return GetShaderConstants<
@@ -3016,6 +3502,10 @@ namespace dxvk {
           UINT  StartRegister,
     const BOOL* pConstantData,
           UINT  BoolCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     return SetShaderConstants<
@@ -3031,6 +3521,10 @@ namespace dxvk {
           UINT  StartRegister,
           BOOL* pConstantData,
           UINT  BoolCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     return GetShaderConstants<
@@ -3047,6 +3541,10 @@ namespace dxvk {
           IDirect3DVertexBuffer9* pStreamData,
           UINT                    OffsetInBytes,
           UINT                    Stride) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(StreamNumber >= caps::MaxStreams))
@@ -3087,6 +3585,10 @@ namespace dxvk {
           IDirect3DVertexBuffer9** ppStreamData,
           UINT*                    pOffsetInBytes,
           UINT*                    pStride) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     InitReturnPtr(ppStreamData);
@@ -3114,6 +3616,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetStreamSourceFreq(UINT StreamNumber, UINT Setting) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(StreamNumber >= caps::MaxStreams))
@@ -3151,6 +3657,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetStreamSourceFreq(UINT StreamNumber, UINT* pSetting) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(StreamNumber >= caps::MaxStreams))
@@ -3166,6 +3676,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetIndices(IDirect3DIndexBuffer9* pIndexData) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     D3D9IndexBuffer* buffer = static_cast<D3D9IndexBuffer*>(pIndexData);
@@ -3185,6 +3699,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetIndices(IDirect3DIndexBuffer9** ppIndexData) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
     InitReturnPtr(ppIndexData);
 
@@ -3200,6 +3718,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::CreatePixelShader(
     const DWORD*                  pFunction,
           IDirect3DPixelShader9** ppShader) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     InitReturnPtr(ppShader);
 
     if (unlikely(ppShader == nullptr))
@@ -3229,6 +3751,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetPixelShader(IDirect3DPixelShader9* pShader) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     D3D9PixelShader* shader = static_cast<D3D9PixelShader*>(pShader);
@@ -3278,6 +3804,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetPixelShader(IDirect3DPixelShader9** ppShader) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     InitReturnPtr(ppShader);
@@ -3295,6 +3825,10 @@ namespace dxvk {
     UINT   StartRegister,
     const float* pConstantData,
     UINT   Vector4fCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     return SetShaderConstants <
@@ -3310,6 +3844,10 @@ namespace dxvk {
     UINT   StartRegister,
     float* pConstantData,
     UINT   Vector4fCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     return GetShaderConstants<
@@ -3325,6 +3863,10 @@ namespace dxvk {
     UINT StartRegister,
     const int* pConstantData,
     UINT Vector4iCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     return SetShaderConstants<
@@ -3340,6 +3882,10 @@ namespace dxvk {
     UINT StartRegister,
     int* pConstantData,
     UINT Vector4iCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     return GetShaderConstants<
@@ -3355,6 +3901,10 @@ namespace dxvk {
     UINT  StartRegister,
     const BOOL* pConstantData,
     UINT  BoolCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     return SetShaderConstants<
@@ -3370,6 +3920,10 @@ namespace dxvk {
     UINT  StartRegister,
     BOOL* pConstantData,
     UINT  BoolCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     return GetShaderConstants<
@@ -3385,6 +3939,10 @@ namespace dxvk {
           UINT               Handle,
     const float*             pNumSegs,
     const D3DRECTPATCH_INFO* pRectPatchInfo) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     static bool s_errorShown = false;
 
     if (!std::exchange(s_errorShown, true))
@@ -3397,6 +3955,10 @@ namespace dxvk {
           UINT              Handle,
     const float*            pNumSegs,
     const D3DTRIPATCH_INFO* pTriPatchInfo) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     static bool s_errorShown = false;
 
     if (!std::exchange(s_errorShown, true))
@@ -3406,6 +3968,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::DeletePatch(UINT Handle) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     static bool s_errorShown = false;
 
     if (!std::exchange(s_errorShown, true))
@@ -3415,6 +3981,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::CreateQuery(D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     HRESULT hr = D3D9Query::QuerySupported(this, Type);
 
     if (ppQuery == nullptr || hr != D3D_OK)
@@ -3439,6 +4009,10 @@ namespace dxvk {
           UINT   height,
           float* rows,
           float* columns) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     // We don't advertise support for this.
     return D3DERR_INVALIDCALL;
   }
@@ -3453,24 +4027,40 @@ namespace dxvk {
           D3DCOMPOSERECTSOP       Operation,
           int                     Xoffset,
           int                     Yoffset) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     Logger::warn("D3D9DeviceEx::ComposeRects: Stub");
     return D3D_OK;
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetGPUThreadPriority(INT* pPriority) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     Logger::warn("D3D9DeviceEx::GetGPUThreadPriority: Stub");
     return D3D_OK;
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetGPUThreadPriority(INT Priority) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     Logger::warn("D3D9DeviceEx::SetGPUThreadPriority: Stub");
     return D3D_OK;
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::WaitForVBlank(UINT iSwapChain) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (unlikely(iSwapChain != 0))
       return D3DERR_INVALIDCALL;
 
@@ -3479,12 +4069,20 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::CheckResourceResidency(IDirect3DResource9** pResourceArray, UINT32 NumResources) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     Logger::warn("D3D9DeviceEx::CheckResourceResidency: Stub");
     return D3D_OK;
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::SetMaximumFrameLatency(UINT MaxLatency) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (MaxLatency == 0)
@@ -3502,6 +4100,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::GetMaximumFrameLatency(UINT* pMaxLatency) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(pMaxLatency == nullptr))
@@ -3514,6 +4116,10 @@ namespace dxvk {
 
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::CheckDeviceState(HWND hDestinationWindow) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return D3D_OK;
   }
 
@@ -3524,6 +4130,10 @@ namespace dxvk {
           HWND hDestWindowOverride,
     const RGNDATA* pDirtyRegion,
           DWORD dwFlags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return m_implicitSwapchain->Present(
       pSourceRect,
       pDestRect,
@@ -3531,7 +4141,6 @@ namespace dxvk {
       pDirtyRegion,
       dwFlags);
   }
-
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::CreateRenderTargetEx(
           UINT                Width,
@@ -3543,6 +4152,10 @@ namespace dxvk {
           IDirect3DSurface9** ppSurface,
           HANDLE*             pSharedHandle,
           DWORD               Usage) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     InitReturnPtr(ppSurface);
 
     if (unlikely(ppSurface == nullptr))
@@ -3588,6 +4201,10 @@ namespace dxvk {
           IDirect3DSurface9** ppSurface,
           HANDLE*             pSharedHandle,
           DWORD               Usage) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     InitReturnPtr(ppSurface);
 
     if (unlikely(ppSurface == nullptr))
@@ -3639,6 +4256,10 @@ namespace dxvk {
           IDirect3DSurface9** ppSurface,
           HANDLE*             pSharedHandle,
           DWORD               Usage) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     InitReturnPtr(ppSurface);
 
     if (unlikely(ppSurface == nullptr))
@@ -3680,6 +4301,10 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::ResetEx(
           D3DPRESENT_PARAMETERS* pPresentationParameters,
           D3DDISPLAYMODEEX*      pFullscreenDisplayMode) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     HRESULT hr = ResetSwapChain(pPresentationParameters, pFullscreenDisplayMode);
@@ -3694,6 +4319,10 @@ namespace dxvk {
           UINT                iSwapChain,
           D3DDISPLAYMODEEX*   pMode,
           D3DDISPLAYROTATION* pRotation) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (unlikely(iSwapChain != 0))
       return D3DERR_INVALIDCALL;
 
@@ -3705,6 +4334,10 @@ namespace dxvk {
           D3DPRESENT_PARAMETERS* pPresentationParameters,
     const D3DDISPLAYMODEEX*      pFullscreenDisplayMode,
           IDirect3DSwapChain9**  ppSwapChain) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     InitReturnPtr(ppSwapChain);
@@ -3739,6 +4372,10 @@ namespace dxvk {
     DWORD               StateSampler,
     D3DSAMPLERSTATETYPE Type,
     DWORD               Value) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(ShouldRecord()))
@@ -3787,6 +4424,10 @@ namespace dxvk {
 
 
   HRESULT D3D9DeviceEx::SetStateTexture(DWORD StateSampler, IDirect3DBaseTexture9* pTexture) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(ShouldRecord()))
@@ -3854,6 +4495,10 @@ namespace dxvk {
 
 
   HRESULT D3D9DeviceEx::SetStateTransform(uint32_t idx, const D3DMATRIX* pMatrix) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(ShouldRecord()))
@@ -3874,6 +4519,10 @@ namespace dxvk {
           DWORD                      Stage,
           D3D9TextureStageStateTypes Type,
           DWORD                      Value) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(Stage >= caps::TextureStageCount))
@@ -3933,21 +4582,37 @@ namespace dxvk {
 
 
   bool D3D9DeviceEx::IsExtended() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return m_parent->IsExtended();
   }
 
 
   bool D3D9DeviceEx::SupportsSWVP() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return m_dxvkDevice->features().core.features.vertexPipelineStoresAndAtomics;
   }
 
 
   HWND D3D9DeviceEx::GetWindow() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return m_window;
   }
 
 
   DxvkDeviceFeatures D3D9DeviceEx::GetDeviceFeatures(const Rc<DxvkAdapter>& adapter) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     DxvkDeviceFeatures supported = adapter->features();
     DxvkDeviceFeatures enabled = {};
 
@@ -4011,6 +4676,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::DetermineConstantLayouts(bool canSWVP) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     m_vsLayout.floatCount    = canSWVP ? caps::MaxFloatConstantsSoftware : caps::MaxFloatConstantsVS;
     m_vsLayout.intCount      = canSWVP ? caps::MaxOtherConstantsSoftware : caps::MaxOtherConstants;
     m_vsLayout.boolCount     = canSWVP ? caps::MaxOtherConstantsSoftware : caps::MaxOtherConstants;
@@ -4024,6 +4693,10 @@ namespace dxvk {
 
 
   D3D9BufferSlice D3D9DeviceEx::AllocUPBuffer(VkDeviceSize size) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     constexpr VkDeviceSize UPBufferSize = 1 << 20;
 
     if (unlikely(m_upBuffer == nullptr || size > UPBufferSize)) {
@@ -4065,7 +4738,13 @@ namespace dxvk {
       EmitCs([
         cBuffer = m_upBuffer,
         cSlice  = sliceHandle
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId    = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_AllocUPBuffer", cCurrentId);
+        #endif
         ctx->invalidateBuffer(cBuffer, cSlice);
       });
     }
@@ -4090,6 +4769,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::EmitStagingBufferMarker() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (m_stagingBufferLastAllocated == m_stagingBufferAllocated)
       return;
 
@@ -4103,7 +4786,13 @@ namespace dxvk {
 
     EmitCs([
       cMarker = std::move(marker)
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId    = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_EmitStagingBufferMarker", cCurrentId);
+      #endif
       ctx->insertMarker(cMarker);
     });
   }
@@ -4166,17 +4855,29 @@ namespace dxvk {
 
 
   bool D3D9DeviceEx::ShouldRecord() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return m_recorder != nullptr && !m_recorder->IsApplying();
   }
 
 
   D3D9_VK_FORMAT_MAPPING D3D9DeviceEx::LookupFormat(
     D3D9Format            Format) const {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return m_adapter->GetFormatMapping(Format);
   }
 
   const DxvkFormatInfo* D3D9DeviceEx::UnsupportedFormatInfo(
     D3D9Format            Format) const {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return m_adapter->GetUnsupportedFormatInfo(Format);
   }
 
@@ -4184,6 +4885,10 @@ namespace dxvk {
   const Rc<DxvkResource>&                 Resource,
         uint64_t                          SequenceNumber,
         DWORD                             MapFlags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     // Wait for the any pending D3D9 command to be executed
     // on the CS thread so that we can determine whether the
     // resource is currently in use or not.
@@ -4223,6 +4928,10 @@ namespace dxvk {
             uint32_t                RowPitch,
       const DxvkFormatInfo*         FormatInfo,
       const D3DBOX*                 pBox) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     if (pBox == nullptr)
       return 0;
 
@@ -4251,6 +4960,11 @@ namespace dxvk {
             D3DLOCKED_BOX*          pLockedBox,
       const D3DBOX*                 pBox,
             DWORD                   Flags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     UINT Subresource = pResource->CalcSubresource(Face, MipLevel);
@@ -4343,7 +5057,6 @@ namespace dxvk {
         Rc<DxvkImage> mappedImage = resourceImage->info().sampleCount != 1
           ? pResource->GetResolveImage()
           : std::move(resourceImage);
-
         // When using any map mode which requires the image contents
         // to be preserved, and if the GPU has write access to the
         // image, copy the current image contents into the buffer.
@@ -4358,7 +5071,13 @@ namespace dxvk {
             cMainImage    = resourceImage,
             cResolveImage = mappedImage,
             cSubresource  = subresourceLayers
+            #ifdef ORBIT_INSTRUMENTATION_BUILD
+            ,cCurrentId = currentId
+            #endif
           ] (DxvkContext* ctx) {
+            #ifdef ORBIT_INSTRUMENTATION_BUILD
+            ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_LockImage", cCurrentId);
+            #endif
             VkImageResolve region;
             region.srcSubresource = cSubresource;
             region.srcOffset      = VkOffset3D { 0, 0, 0 };
@@ -4388,7 +5107,13 @@ namespace dxvk {
           cSubresources     = subresourceLayers,
           cLevelExtent      = levelExtent,
           cPackedFormat     = packedFormat
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ,cCurrentId = currentId
+          #endif
         ] (DxvkContext* ctx) {
+          #ifdef ORBIT_INSTRUMENTATION_BUILD
+          ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_LockImage", cCurrentId);
+          #endif
           if (cSubresources.aspectMask != (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) {
             ctx->copyImageToBuffer(cImageBufferSlice.buffer(),
               cImageBufferSlice.offset(), 4, 0, cImage,
@@ -4480,6 +5205,10 @@ namespace dxvk {
         D3D9CommonTexture*      pResource,
         UINT                    Face,
         UINT                    MipLevel) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     UINT Subresource = pResource->CalcSubresource(Face, MipLevel);
@@ -4522,6 +5251,9 @@ namespace dxvk {
   HRESULT D3D9DeviceEx::FlushImage(
         D3D9CommonTexture*      pResource,
         UINT                    Subresource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
 
     const Rc<DxvkImage> image = pResource->GetImage();
     auto formatInfo  = lookupFormatInfo(image->info().format);
@@ -4551,6 +5283,10 @@ namespace dxvk {
     VkOffset3D SrcOffset,
     VkExtent3D SrcExtent,
     VkOffset3D DestOffset) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     WaitStagingBuffer();
 
     const Rc<DxvkImage> image = pDestTexture->GetImage();
@@ -4626,7 +5362,14 @@ namespace dxvk {
         cDstLevelExtent = alignedExtent,
         cOffset         = alignedDestOffset,
         cPackedFormat     = packedFormat
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_UpdateTextureFromBuffer",
+                                       cCurrentId);
+        #endif
         if (cDstLayers.aspectMask != (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) {
           ctx->copyBufferToImage(
             cDstImage,  cDstLayers,
@@ -4688,13 +5431,24 @@ namespace dxvk {
 
   void D3D9DeviceEx::EmitGenerateMips(
     D3D9CommonTexture* pResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     if (pResource->IsManaged())
       UploadManagedTexture(pResource);
 
     EmitCs([
       cImageView = pResource->GetSampleView(false),
       cFilter    = pResource->GetMipFilter()
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_EmitGenerateMips", cCurrentId);
+      #endif
       ctx->generateMipmaps(cImageView, DecodeFilter(cFilter));
     });
   }
@@ -4706,6 +5460,11 @@ namespace dxvk {
           UINT                    SizeToLock,
           void**                  ppbData,
           DWORD                   Flags) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(ppbData == nullptr))
@@ -4762,7 +5521,13 @@ namespace dxvk {
       EmitCs([
         cBuffer      = std::move(mappingBuffer),
         cBufferSlice = physSlice
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId   = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_LockBuffer", cCurrentId);
+        #endif
         ctx->invalidateBuffer(cBuffer, cBufferSlice);
       });
 
@@ -4812,6 +5577,10 @@ namespace dxvk {
 
   HRESULT D3D9DeviceEx::FlushBuffer(
         D3D9CommonBuffer*       pResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     WaitStagingBuffer();
 
     auto dstBuffer = pResource->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_REAL>();
@@ -4828,7 +5597,13 @@ namespace dxvk {
       cSrcSlice  = slice.slice,
       cDstOffset = range.min,
       cLength    = range.max - range.min
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_FlushBuffer", cCurrentId);
+      #endif
       ctx->copyBuffer(
         cDstSlice.buffer(),
         cDstSlice.offset() + cDstOffset,
@@ -4848,6 +5623,10 @@ namespace dxvk {
 
   HRESULT D3D9DeviceEx::UnlockBuffer(
         D3D9CommonBuffer*       pResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     if (pResource->DecrementLockCount() != 0)
@@ -4871,12 +5650,18 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::EmitCsChunk(DxvkCsChunkRef&& chunk) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     m_csSeqNum = m_csThread.dispatchChunk(std::move(chunk));
     m_csIsBusy = true;
   }
 
 
   void D3D9DeviceEx::FlushImplicit(BOOL StrongHint) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     // Flush only if the GPU is about to go idle, in
     // order to keep the number of submissions low.
     uint32_t pending = m_dxvkDevice->pendingSubmissions();
@@ -4895,6 +5680,9 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::SynchronizeCsThread(uint64_t SequenceNumber) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     D3D9DeviceLock lock = LockDevice();
 
     // Dispatch current chunk so that all commands
@@ -4907,6 +5695,9 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::SetupFPU() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     // Should match d3d9 float behaviour.
 
 #if defined(_MSC_VER)
@@ -4952,6 +5743,9 @@ namespace dxvk {
 
 
   int64_t D3D9DeviceEx::DetermineInitialTextureMemory() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     auto memoryProp = m_adapter->GetDXVKAdapter()->memoryProperties();
 
     VkDeviceSize availableTextureMemory = 0;
@@ -4970,6 +5764,9 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::CreateConstantBuffers() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     constexpr VkDeviceSize DefaultConstantBufferSize  = 1024ull << 10;
     constexpr VkDeviceSize SmallConstantBufferSize    =   64ull << 10;
 
@@ -5030,6 +5827,9 @@ namespace dxvk {
 
 
   inline void D3D9DeviceEx::UploadSoftwareConstantSet(const D3D9ShaderConstantsVSSoftware& Src, const D3D9ConstantLayout& Layout) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     /*
      * SWVP raises the amount of constants by a lot.
      * To avoid copying huge amounts of data for every draw call,
@@ -5083,6 +5883,9 @@ namespace dxvk {
 
 
   inline void* D3D9DeviceEx::CopySoftwareConstants(D3D9ConstantBuffer& dstBuffer, const void* src, uint32_t size) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     uint32_t alignment = dstBuffer.GetAlignment();
     size = std::max(size, alignment);
     size = align(size, alignment);
@@ -5095,9 +5898,13 @@ namespace dxvk {
 
   template <DxsoProgramType ShaderStage, typename HardwareLayoutType, typename SoftwareLayoutType, typename ShaderType>
   inline void D3D9DeviceEx::UploadConstantSet(const SoftwareLayoutType& Src, const D3D9ConstantLayout& Layout, const ShaderType& Shader) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     /*
-     * We just copy the float constants that have been set by the application and rely on robustness
-     * to return 0 on OOB reads.
+     * We just copy the float constants that have been set by the application
+     * and rely on robustness to return 0 on OOB reads.
     */
     D3D9ConstantSets& constSet = m_consts[ShaderStage];
 
@@ -5143,6 +5950,9 @@ namespace dxvk {
 
   template <DxsoProgramType ShaderStage>
   void D3D9DeviceEx::UploadConstants() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     if constexpr (ShaderStage == DxsoProgramTypes::VertexShader) {
       if (CanSWVP())
         return UploadSoftwareConstantSet(m_state.vsConsts, m_vsLayout);
@@ -5155,6 +5965,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::UpdateClipPlanes() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     m_flags.clr(D3D9DeviceFlag::DirtyClipPlanes);
 
     auto mapPtr = m_vsClipPlanes.AllocSlice();
@@ -5170,13 +5984,23 @@ namespace dxvk {
 
   template <uint32_t Offset, uint32_t Length>
   void D3D9DeviceEx::UpdatePushConstant(const void* pData) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     struct ConstantData { uint8_t Data[Length]; };
 
     auto* constData = reinterpret_cast<const ConstantData*>(pData);
 
     EmitCs([
       cData = *constData
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_UpdatePushConstant", cCurrentId);
+      #endif
       ctx->pushConstants(Offset, Length, &cData);
     });
   }
@@ -5184,6 +6008,9 @@ namespace dxvk {
 
   template <D3D9RenderStateItem Item>
   void D3D9DeviceEx::UpdatePushConstant() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     auto& rs = m_state.renderStates;
 
     if constexpr (Item == D3D9RenderStateItem::AlphaRef) {
@@ -5244,6 +6071,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::Flush() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D9DeviceLock lock = LockDevice();
 
     m_initializer->Flush();
@@ -5254,7 +6085,14 @@ namespace dxvk {
 
       // Add commands to flush the threaded
       // context, then flush the command list
-      EmitCs([](DxvkContext* ctx) {
+      EmitCs([
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        cCurrentId = currentId
+        #endif
+        ](DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_Flush", cCurrentId);
+        #endif
         ctx->flushCommandList();
       });
 
@@ -5268,15 +6106,30 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::EndFrame() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D9DeviceLock lock = LockDevice();
 
-    EmitCs([] (DxvkContext* ctx) {
+    EmitCs([
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      cCurrentId = currentId
+      #endif
+      ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_EndFrame", cCurrentId);
+      #endif
       ctx->endFrame();
     });
   }
 
 
   inline void D3D9DeviceEx::UpdateBoundRTs(uint32_t index) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     const uint32_t bit = 1 << index;
     
     m_boundRTs &= ~bit;
@@ -5288,6 +6141,9 @@ namespace dxvk {
 
 
   inline void D3D9DeviceEx::UpdateActiveRTs(uint32_t index) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     const uint32_t bit = 1 << index;
 
     m_activeRTs &= ~bit;
@@ -5302,6 +6158,9 @@ namespace dxvk {
 
 
   inline void D3D9DeviceEx::UpdateActiveTextures(uint32_t index, DWORD combinedUsage) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     const uint32_t bit = 1 << index;
 
     m_activeRTTextures       &= ~bit;
@@ -5336,6 +6195,10 @@ namespace dxvk {
 
 
   inline void D3D9DeviceEx::UpdateActiveHazardsRT(uint32_t rtMask) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     auto masks = m_psShaderMasks;
     masks.rtMask      &= m_activeRTs & rtMask;
     masks.samplerMask &= m_activeRTTextures;
@@ -5363,6 +6226,9 @@ namespace dxvk {
 
 
   inline void D3D9DeviceEx::UpdateActiveHazardsDS(uint32_t texMask) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     m_activeHazardsDS = m_activeHazardsDS & (~texMask);
     if (m_state.depthStencil != nullptr &&
         m_state.depthStencil->GetBaseTexture() != nullptr) {
@@ -5381,7 +6247,19 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::MarkRenderHazards() {
-    EmitCs([](DxvkContext* ctx) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
+    EmitCs([
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      cCurrentId = currentId
+      #endif
+    ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_MarkRenderHazards", cCurrentId);
+      #endif
       ctx->emitGraphicsBarrier(
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
@@ -5422,6 +6300,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::UploadManagedTexture(D3D9CommonTexture* pResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     for (uint32_t subresource = 0; subresource < pResource->CountSubresources(); subresource++) {
       if (!pResource->NeedsUpload(subresource))
         continue;
@@ -5435,6 +6317,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::UploadManagedTextures(uint32_t mask) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     // Guaranteed to not be nullptr...
     for (uint32_t texIdx : bit::BitMask(mask))
       UploadManagedTexture(GetCommonTexture(m_state.textures[texIdx]));
@@ -5444,6 +6330,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::GenerateTextureMips(uint32_t mask) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     for (uint32_t texIdx : bit::BitMask(mask)) {
       // Guaranteed to not be nullptr...
       auto texInfo = GetCommonTexture(m_state.textures[texIdx]);
@@ -5459,6 +6349,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::MarkTextureMipsDirty(D3D9CommonTexture* pResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     pResource->SetNeedsMipGen(true);
 
     for (uint32_t i : bit::BitMask(m_activeTextures)) {
@@ -5475,6 +6369,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::MarkTextureMipsUnDirty(D3D9CommonTexture* pResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     pResource->SetNeedsMipGen(false);
 
     for (uint32_t i : bit::BitMask(m_activeTextures)) {
@@ -5488,6 +6386,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::MarkTextureUploaded(D3D9CommonTexture* pResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     for (uint32_t i : bit::BitMask(m_activeTextures)) {
       // Guaranteed to not be nullptr...
       auto texInfo = GetCommonTexture(m_state.textures[i]);
@@ -5499,6 +6401,9 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::UpdatePointMode(bool pointList) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     if (!pointList) {
       UpdatePointModeSpec(0);
       return;
@@ -5527,6 +6432,11 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::UpdateFog() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     auto& rs = m_state.renderStates;
 
     bool fogEnabled = rs[D3DRS_FOGENABLE];
@@ -5595,6 +6505,11 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::BindFramebuffer() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     m_flags.clr(D3D9DeviceFlag::DirtyFramebuffer);
 
     DxvkRenderTargets attachments;
@@ -5648,13 +6563,23 @@ namespace dxvk {
     EmitCs([
       cAttachments         = std::move(attachments),
       cFeedbackLoopAspects = feedbackLoopAspects
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId  = currentId
+      #endif
     ] (DxvkContext* ctx) mutable {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindFramebuffer", cCurrentId);
+      #endif
       ctx->bindRenderTargets(std::move(cAttachments), cFeedbackLoopAspects);
     });
   }
 
 
   void D3D9DeviceEx::BindViewportAndScissor() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     m_flags.clr(D3D9DeviceFlag::DirtyViewportScissor);
 
     VkViewport viewport;
@@ -5719,7 +6644,13 @@ namespace dxvk {
     EmitCs([
       cViewport = viewport,
       cScissor = scissor
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindViewportAndScissor", cCurrentId);
+      #endif
       ctx->setViewports(
         1,
         &cViewport,
@@ -5729,6 +6660,11 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::BindMultiSampleState() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     m_flags.clr(D3D9DeviceFlag::DirtyMultiSampleState);
 
     DxvkMultisampleState msState;
@@ -5739,13 +6675,24 @@ namespace dxvk {
 
     EmitCs([
       cState = msState
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindMultiSampleState", cCurrentId);
+      #endif
       ctx->setMultisampleState(cState);
     });
   }
 
 
   void D3D9DeviceEx::BindBlendState() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     m_flags.clr(D3D9DeviceFlag::DirtyBlendState);
 
     auto& state = m_state.renderStates;
@@ -5789,7 +6736,13 @@ namespace dxvk {
       cMode       = mode,
       cWriteMasks = extraWriteMasks,
       cAlphaMasks = m_alphaSwizzleRTs
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId  = currentId
+      #endif
     ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindBlendState", cCurrentId);
+      #endif
       for (uint32_t i = 0; i < 4; i++) {
         DxvkBlendMode mode = cMode;
         if (i != 0)
@@ -5820,6 +6773,11 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::BindBlendFactor() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     DxvkBlendConstants blendConstants;
     DecodeD3DCOLOR(
       D3DCOLOR(m_state.renderStates[D3DRS_BLENDFACTOR]),
@@ -5827,13 +6785,24 @@ namespace dxvk {
 
     EmitCs([
       cBlendConstants = blendConstants
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId     = currentId
+      #endif
     ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindBlendFactor", cCurrentId);
+      #endif
       ctx->setBlendConstants(cBlendConstants);
     });
   }
 
 
   void D3D9DeviceEx::BindDepthStencilState() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     m_flags.clr(D3D9DeviceFlag::DirtyDepthStencilState);
 
     auto& rs = m_state.renderStates;
@@ -5873,13 +6842,24 @@ namespace dxvk {
 
     EmitCs([
       cState = state
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindDepthStencilState", cCurrentId);
+      #endif
       ctx->setDepthStencilState(cState);
     });
   }
 
 
   void D3D9DeviceEx::BindRasterizerState() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     m_flags.clr(D3D9DeviceFlag::DirtyRasterizerState);
 
     auto& rs = m_state.renderStates;
@@ -5894,13 +6874,24 @@ namespace dxvk {
 
     EmitCs([
       cState  = state
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindRasterizerState", cCurrentId);
+      #endif
       ctx->setRasterizerState(cState);
     });
   }
 
 
   void D3D9DeviceEx::BindDepthBias() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     m_flags.clr(D3D9DeviceFlag::DirtyDepthBias);
 
     auto& rs = m_state.renderStates;
@@ -5915,7 +6906,13 @@ namespace dxvk {
 
     EmitCs([
       cBiases = biases
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindDepthBias", cCurrentId);
+      #endif
       ctx->setDepthBias(cBiases);
     });
   }
@@ -5958,6 +6955,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::BindAlphaTestState() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     m_flags.clr(D3D9DeviceFlag::DirtyAlphaTestState);
 
     auto& rs = m_state.renderStates;
@@ -5975,17 +6976,34 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::BindDepthStencilRefrence() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     auto& rs = m_state.renderStates;
 
     uint32_t ref = uint32_t(rs[D3DRS_STENCILREF]) & 0xff;
 
-    EmitCs([cRef = ref] (DxvkContext* ctx) {
+    EmitCs([
+      cRef = ref
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
+    ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindDepthStencilRefrence", cCurrentId);
+      #endif
       ctx->setStencilReference(cRef);
     });
   }
 
 
   void D3D9DeviceEx::BindSampler(DWORD Sampler) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     auto& state = m_state.samplerStates[Sampler];
 
     D3D9SamplerKey key;
@@ -6028,7 +7046,13 @@ namespace dxvk {
     EmitCs([this,
       cSlot = slot,
       cKey  = key
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_BindSampler", cCurrentId);
+      #endif
       VkShaderStageFlags stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
       auto pair = m_samplers.find(cKey);
@@ -6088,6 +7112,11 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::BindTexture(DWORD StateSampler) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     auto shaderSampler = RemapStateSamplerShader(StateSampler);
 
     uint32_t slot = computeResourceSlotId(shaderSampler.first,
@@ -6102,7 +7131,13 @@ namespace dxvk {
     EmitCs([
       cSlot = slot,
       cImageView = commonTex->GetSampleView(srgb)
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ](DxvkContext* ctx) mutable {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_BindTexture", cCurrentId);
+      #endif
       VkShaderStageFlags stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
       ctx->bindResourceImageView(stage, cSlot, std::move(cImageView));
     });
@@ -6110,9 +7145,19 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::UnbindTextures(uint32_t mask) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     EmitCs([
       cMask = mask
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_BindTexture", cCurrentId);
+      #endif
       for (uint32_t i : bit::BitMask(cMask)) {
         auto shaderSampler = RemapStateSamplerShader(i);
 
@@ -6127,6 +7172,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::UndirtySamplers(uint32_t mask) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     for (uint32_t i : bit::BitMask(mask))
       BindSampler(i);
 
@@ -6135,6 +7184,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::UndirtyTextures(uint32_t usedMask) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     const uint32_t activeMask   = usedMask &  m_activeTextures;
     const uint32_t inactiveMask = usedMask & ~m_activeTextures;
 
@@ -6148,6 +7201,10 @@ namespace dxvk {
   }
 
   void D3D9DeviceEx::MarkTextureBindingDirty(IDirect3DBaseTexture9* texture) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DeviceLock lock = LockDevice();
 
     for (uint32_t i : bit::BitMask(m_activeTextures)) {
@@ -6161,6 +7218,10 @@ namespace dxvk {
           D3DPRIMITIVETYPE PrimitiveType,
           UINT             PrimitiveCount,
           UINT             InstanceCount) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9DrawInfo drawInfo;
     drawInfo.vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
     drawInfo.instanceCount = m_iaState.streamsInstanced & m_iaState.streamsUsed
@@ -6171,11 +7232,19 @@ namespace dxvk {
 
 
   uint32_t D3D9DeviceEx::GetInstanceCount() const {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     return std::max(m_state.streamFreq[0] & 0x7FFFFFu, 1u);
   }
 
 
   void D3D9DeviceEx::PrepareDraw(D3DPRIMITIVETYPE PrimitiveType) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (unlikely(m_activeHazardsRT != 0))
       MarkRenderHazards();
 
@@ -6331,7 +7400,13 @@ namespace dxvk {
 
       EmitCs([
         cDepthBounds = db
-      ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId   = currentId
+        #endif
+    ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_PrepareDraw", cCurrentId);
+        #endif
         ctx->setDepthBounds(cDepthBounds);
       });
     }
@@ -6343,6 +7418,10 @@ namespace dxvk {
   template <DxsoProgramType ShaderStage>
   void D3D9DeviceEx::BindShader(
   const D3D9CommonShader*                 pShaderModule) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     auto shader = pShaderModule->GetShader();
 
     if (unlikely(shader->needsLibraryCompile()))
@@ -6350,7 +7429,13 @@ namespace dxvk {
 
     EmitCs([
       cShader = std::move(shader)
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) mutable {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindShader", cCurrentId);
+      #endif
       constexpr VkShaderStageFlagBits stage = GetShaderStage(ShaderStage);
       ctx->bindShader<stage>(std::move(cShader));
     });
@@ -6358,10 +7443,23 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::BindInputLayout() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     m_flags.clr(D3D9DeviceFlag::DirtyInputLayout);
 
     if (m_state.vertexDecl == nullptr) {
-      EmitCs([&cIaState = m_iaState] (DxvkContext* ctx) {
+      EmitCs([
+        &cIaState = m_iaState
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
+      ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindInputLayout", cCurrentId);
+      #endif
         cIaState.streamsUsed = 0;
         ctx->setInputLayout(0, nullptr, 0, nullptr);
       });
@@ -6384,7 +7482,13 @@ namespace dxvk {
         cVertexShader     = std::move(vertexShader),
         cStreamsInstanced = m_instancedData,
         cStreamFreq       = streamFreq
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId       = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_BindInputLayout", cCurrentId);
+        #endif
         cIaState.streamsInstanced = cStreamsInstanced;
         cIaState.streamsUsed      = 0;
 
@@ -6469,18 +7573,33 @@ namespace dxvk {
         D3D9VertexBuffer*                 pBuffer,
         UINT                              Offset,
         UINT                              Stride) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     EmitCs([
       cSlotId       = Slot,
       cBufferSlice  = pBuffer != nullptr ?
           pBuffer->GetCommonBuffer()->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_REAL>(Offset)
         : DxvkBufferSlice(),
       cStride       = pBuffer != nullptr ? Stride : 0
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ] (DxvkContext* ctx) mutable {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_BindVertexBuffer", cCurrentId);
+      #endif
       ctx->bindVertexBuffer(cSlotId, std::move(cBufferSlice), cStride);
     });
   }
 
   void D3D9DeviceEx::BindIndices() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D9CommonBuffer* buffer = GetCommonBuffer(m_state.indices);
 
     D3D9Format format = buffer != nullptr
@@ -6492,25 +7611,56 @@ namespace dxvk {
     EmitCs([
       cBufferSlice = buffer != nullptr ? buffer->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_REAL>() : DxvkBufferSlice(),
       cIndexType   = indexType
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
     ](DxvkContext* ctx) mutable {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_BindIndices", cCurrentId);
+      #endif
       ctx->bindIndexBuffer(std::move(cBufferSlice), cIndexType);
     });
   }
 
 
   void D3D9DeviceEx::Begin(D3D9Query* pQuery) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D9DeviceLock lock = LockDevice();
 
-    EmitCs([cQuery = Com<D3D9Query, false>(pQuery)](DxvkContext* ctx) {
+    EmitCs([
+      cQuery = Com<D3D9Query, false>(pQuery)
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
+    ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_Begin", cCurrentId);
+      #endif
       cQuery->Begin(ctx);
     });
   }
 
 
   void D3D9DeviceEx::End(D3D9Query* pQuery) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     D3D9DeviceLock lock = LockDevice();
 
-    EmitCs([cQuery = Com<D3D9Query, false>(pQuery)](DxvkContext* ctx) {
+    EmitCs([
+      cQuery = Com<D3D9Query,
+      false>(pQuery)
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
+    ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_End", cCurrentId);
+      #endif
       cQuery->End(ctx);
     });
 
@@ -6526,6 +7676,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::SetVertexBoolBitfield(uint32_t idx, uint32_t mask, uint32_t bits) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     m_state.vsConsts.bConsts[idx] &= ~mask;
     m_state.vsConsts.bConsts[idx] |= bits & mask;
 
@@ -6534,6 +7688,9 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::SetPixelBoolBitfield(uint32_t idx, uint32_t mask, uint32_t bits) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     m_state.psConsts.bConsts[idx] &= ~mask;
     m_state.psConsts.bConsts[idx] |= bits & mask;
 
@@ -6547,6 +7704,9 @@ namespace dxvk {
         VkShaderStageFlagBits ShaderStage,
   const DWORD*                pShaderBytecode,
   const DxsoModuleInfo*       pModuleInfo) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     try {
       m_shaderModules->GetShaderModule(this, pShaderModule,
         pLength, ShaderStage, pModuleInfo, pShaderBytecode);
@@ -6568,6 +7728,9 @@ namespace dxvk {
             UINT  StartRegister,
       const T*    pConstantData,
             UINT  Count) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     const     uint32_t regCountHardware = DetermineHardwareRegCount<ProgramType, ConstantType>();
     constexpr uint32_t regCountSoftware = DetermineSoftwareRegCount<ProgramType, ConstantType>();
 
@@ -6629,6 +7792,10 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::UpdateFixedFunctionVS() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     // Shader...
     bool hasPositionT = m_state.vertexDecl != nullptr ? m_state.vertexDecl->TestFlag(D3D9VertexDeclFlag::HasPositionT) : false;
     bool hasBlendWeight    = m_state.vertexDecl != nullptr ? m_state.vertexDecl->TestFlag(D3D9VertexDeclFlag::HasBlendWeight)  : false;
@@ -6724,7 +7891,13 @@ namespace dxvk {
         this,
         cKey     = key,
        &cShaders = m_ffModules
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ](DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_UpdateFixedFunctionVS", cCurrentId);
+        #endif
         auto shader = cShaders.GetShaderModule(this, cKey);
         ctx->bindShader<VK_SHADER_STAGE_VERTEX_BIT>(shader.GetShader());
       });
@@ -6812,6 +7985,11 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::UpdateFixedFunctionPS() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     // Shader...
     if (m_flags.test(D3D9DeviceFlag::DirtyFFPixelShader) || m_lastSamplerTypesFF != m_textureTypes) {
       m_flags.clr(D3D9DeviceFlag::DirtyFFPixelShader);
@@ -6898,7 +8076,13 @@ namespace dxvk {
         this,
         cKey     = key,
        &cShaders = m_ffModules
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ](DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_UpdateFixedFunctionPS", cCurrentId);
+        #endif
         auto shader = cShaders.GetShaderModule(this, cKey);
         ctx->bindShader<VK_SHADER_STAGE_FRAGMENT_BIT>(shader.GetShader());
       });
@@ -6919,6 +8103,9 @@ namespace dxvk {
 
 
   bool D3D9DeviceEx::UseProgrammableVS() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     return m_state.vertexShader != nullptr
       && m_state.vertexDecl != nullptr
       && !m_state.vertexDecl->TestFlag(D3D9VertexDeclFlag::HasPositionT);
@@ -6926,6 +8113,9 @@ namespace dxvk {
 
 
   bool D3D9DeviceEx::UseProgrammablePS() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     return m_state.pixelShader != nullptr;
   }
 
@@ -6933,6 +8123,9 @@ namespace dxvk {
   void D3D9DeviceEx::ApplyPrimitiveType(
     DxvkContext*      pContext,
     D3DPRIMITIVETYPE  PrimType) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     if (m_iaState.primitiveType != PrimType) {
       m_iaState.primitiveType = PrimType;
 
@@ -6943,6 +8136,11 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::ResolveZ() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     D3D9Surface*           src = m_state.depthStencil.ptr();
     IDirect3DBaseTexture9* dst = m_state.textures[0];
 
@@ -6996,7 +8194,13 @@ namespace dxvk {
         cSrcImage  = srcTextureInfo->GetImage(),
         cDstLayers = dstSubresourceLayers,
         cSrcLayers = srcSubresourceLayers
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ResolveZ", cCurrentId);
+        #endif
         ctx->copyImage(
           cDstImage, cDstLayers, VkOffset3D { 0, 0, 0 },
           cSrcImage, cSrcLayers, VkOffset3D { 0, 0, 0 },
@@ -7008,7 +8212,13 @@ namespace dxvk {
         cSrcImage  = srcTextureInfo->GetImage(),
         cDstSubres = dstSubresourceLayers,
         cSrcSubres = srcSubresourceLayers
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ,cCurrentId = currentId
+        #endif
       ] (DxvkContext* ctx) {
+        #ifdef ORBIT_INSTRUMENTATION_BUILD
+        ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ResolveZ", cCurrentId);
+        #endif
         // We should resolve using the first sample according to
         // http://amd-dev.wpengine.netdna-cdn.com/wordpress/media/2012/10/Advanced-DX9-Capabilities-for-ATI-Radeon-Cards_v2.pdf
         // "The resolve operation copies the depth value from the *first sample only* into the resolved depth stencil texture."
@@ -7030,10 +8240,21 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::TransitionImage(D3D9CommonTexture* pResource, VkImageLayout NewLayout) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
+
     EmitCs([
       cImage        = pResource->GetImage(),
       cNewLayout    = NewLayout
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId   = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_TransitionImage", cCurrentId);
+      #endif
       ctx->changeImageLayout(
         cImage, cNewLayout);
     });
@@ -7045,12 +8266,22 @@ namespace dxvk {
     const VkImageSubresourceRange* pSubresources,
           VkImageLayout            OldLayout,
           VkImageLayout            NewLayout) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     EmitCs([
       cImage        = pResource->GetImage(),
       cSubresources = *pSubresources,
       cOldLayout    = OldLayout,
       cNewLayout    = NewLayout
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId   = currentId
+      #endif
     ] (DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_TransformImage", cCurrentId);
+      #endif
       ctx->transformImage(
         cImage, cSubresources,
         cOldLayout, cNewLayout);
@@ -7059,6 +8290,10 @@ namespace dxvk {
 
 
   HRESULT D3D9DeviceEx::ResetState(D3DPRESENT_PARAMETERS* pPresentationParameters) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (!pPresentationParameters->EnableAutoDepthStencil)
       SetDepthStencilSurface(nullptr);
 
@@ -7251,7 +8486,13 @@ namespace dxvk {
 
     EmitCs([
       cSize = m_state.textures.size()
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId   = currentId
+      #endif
     ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK__EM_ResetState", cCurrentId);
+      #endif
       VkShaderStageFlags stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
       for (uint32_t i = 0; i < cSize; i++) {
@@ -7305,6 +8546,10 @@ namespace dxvk {
 
 
   HRESULT D3D9DeviceEx::ResetSwapChain(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     D3D9Format backBufferFmt = EnumerateFormat(pPresentationParameters->BackBufferFormat);
 
     Logger::info(str::format(
@@ -7368,6 +8613,10 @@ namespace dxvk {
 
 
   HRESULT D3D9DeviceEx::InitialReset(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
+
     HRESULT hr = ResetSwapChain(pPresentationParameters, pFullscreenDisplayMode);
     if (FAILED(hr))
       return hr;
@@ -7384,6 +8633,9 @@ namespace dxvk {
 
   void D3D9DeviceEx::TrackBufferMappingBufferSequenceNumber(
         D3D9CommonBuffer* pResource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     uint64_t sequenceNumber = GetCurrentSequenceNumber();
     pResource->TrackMappingBufferSequenceNumber(sequenceNumber);
   }
@@ -7391,11 +8643,17 @@ namespace dxvk {
   void D3D9DeviceEx::TrackTextureMappingBufferSequenceNumber(
       D3D9CommonTexture* pResource,
       UINT Subresource) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     uint64_t sequenceNumber = GetCurrentSequenceNumber();
     pResource->TrackMappingBufferSequenceNumber(Subresource, sequenceNumber);
   }
 
   uint64_t D3D9DeviceEx::GetCurrentSequenceNumber() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     // We do not flush empty chunks, so if we are tracking a resource
     // immediately after a flush, we need to use the sequence number
     // of the previously submitted chunk to prevent deadlocks.
@@ -7417,6 +8675,9 @@ namespace dxvk {
   }
 
   void D3D9DeviceEx::TouchMappedTexture(D3D9CommonTexture* pTexture) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
 #ifdef D3D9_ALLOW_UNMAPPING
     if (pTexture->GetMapMode() != D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE)
       return;
@@ -7427,6 +8688,9 @@ namespace dxvk {
   }
 
   void D3D9DeviceEx::RemoveMappedTexture(D3D9CommonTexture* pTexture) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
 #ifdef D3D9_ALLOW_UNMAPPING
     if (pTexture->GetMapMode() != D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE)
       return;
@@ -7437,6 +8701,9 @@ namespace dxvk {
   }
 
   void D3D9DeviceEx::UnmapTextures() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     // Will only be called inside the device lock
 
 #ifdef D3D9_ALLOW_UNMAPPING
@@ -7464,6 +8731,9 @@ namespace dxvk {
   ////////////////////////////////////
 
   void D3D9DeviceEx::UpdateAlphaTestSpec(VkCompareOp alphaOp, uint32_t precision) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     bool dirty  = m_specInfo.set<SpecAlphaCompareOp>(uint32_t(alphaOp));
          dirty |= m_specInfo.set<SpecAlphaPrecisionBits>(precision);
 
@@ -7473,18 +8743,27 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::UpdateVertexBoolSpec(uint32_t value) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     if (m_specInfo.set<SpecVertexShaderBools>(value))
       m_flags.set(D3D9DeviceFlag::DirtySpecializationEntries);
   }
 
 
   void D3D9DeviceEx::UpdatePixelBoolSpec(uint32_t value) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     if (m_specInfo.set<SpecPixelShaderBools>(value))
       m_flags.set(D3D9DeviceFlag::DirtySpecializationEntries);
   }
 
 
   void D3D9DeviceEx::UpdatePixelShaderSamplerSpec(uint32_t types, uint32_t projections, uint32_t fetch4) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     bool dirty  = m_specInfo.set<SpecSamplerType>(types);
          dirty |= m_specInfo.set<SpecProjectionType>(projections);
          dirty |= m_specInfo.set<SpecFetch4>(fetch4);
@@ -7495,6 +8774,9 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::UpdateCommonSamplerSpec(uint32_t nullMask, uint32_t depthMask, uint32_t drefMask) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     bool dirty  = m_specInfo.set<SpecSamplerDepthMode>(depthMask);
          dirty |= m_specInfo.set<SpecSamplerNull>(nullMask);
          dirty |= m_specInfo.set<SpecDrefClamp>(drefMask);
@@ -7505,12 +8787,18 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::UpdatePointModeSpec(uint32_t mode) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     if (m_specInfo.set<SpecPointMode>(mode))
       m_flags.set(D3D9DeviceFlag::DirtySpecializationEntries);
   }
 
 
   void D3D9DeviceEx::UpdateFogModeSpec(bool fogEnabled, D3DFOGMODE vertexFogMode, D3DFOGMODE pixelFogMode) {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    ORBIT_SCOPE_DXVK_FUNCTION();
+    #endif
     bool dirty  = m_specInfo.set<SpecFogEnabled>(fogEnabled);
          dirty |= m_specInfo.set<SpecVertexFogMode>(vertexFogMode);
          dirty |= m_specInfo.set<SpecPixelFogMode>(pixelFogMode);
@@ -7521,10 +8809,22 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::BindSpecConstants() {
+    #ifdef ORBIT_INSTRUMENTATION_BUILD
+    uint64_t currentId = 0;
+    ORBIT_SCOPE_DXVK_FUNCTION_WITH_NEXT_GROUP_ID(&currentId);
+    #endif
     if (!m_flags.test(D3D9DeviceFlag::DirtySpecializationEntries))
       return;
 
-    EmitCs([cSpecInfo = m_specInfo](DxvkContext* ctx) {
+    EmitCs([
+      cSpecInfo = m_specInfo
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ,cCurrentId = currentId
+      #endif
+    ](DxvkContext* ctx) {
+      #ifdef ORBIT_INSTRUMENTATION_BUILD
+      ORBIT_SCOPE_DXVK_WITH_GROUP_ID("DXVK_EM_BindSpecConstants", cCurrentId);
+      #endif
       for (size_t i = 0; i < cSpecInfo.data.size(); i++)
         ctx->setSpecConstant(VK_PIPELINE_BIND_POINT_GRAPHICS, i, cSpecInfo.data[i]);
     });
